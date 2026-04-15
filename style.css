@@ -15,6 +15,7 @@
 
 .header-container:hover .header-logo {
     transform: rotate(720deg);
+    cursor: url('138daa72d9b1259fcea4c2f9036f90f0.png'), pointer;
 }
 .title {
     color: aliceblue;
@@ -26,6 +27,7 @@
 .title:hover {
     letter-spacing: 5px;
     color: #e0b0ff;
+    cursor: url('138daa72d9b1259fcea4c2f9036f90f0.png'), pointer;
 }
 
 a {
@@ -51,6 +53,7 @@ a {
 a:hover {
     transform: scale(1.2);
     color: #000000 !important;
+    cursor: url('138daa72d9b1259fcea4c2f9036f90f0.png'), pointer;
     
 }
 body {
@@ -62,4 +65,5 @@ body {
     background-position: center; 
     background-repeat: no-repeat;
     background-attachment: fixed;
+    cursor: url('471ab378cf8d4ca5a5f52e68ee61e29f.png'), auto;
 }
