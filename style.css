@@ -4,6 +4,17 @@
     justify-content: center;
     margin-top: 50px;
     gap: 15px;
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    padding: 20px;
+    color: white;
+    min-height: auto;
+    width:fit-content;
+
+    margin: 0 auto;
 }
 
 .header-logo {
@@ -36,31 +47,34 @@ a {
     justify-content: center;
     margin-top: 50px;
     gap: 15px;
-    width: 250px; 
+    min-width: 200px;
     margin: 10px auto;
     text-decoration: none;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     font-weight: bold;
-    transition: all 0.3s ease;
-    border: 2px solid aliceblue;
+    transition: all 0.5s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
     padding: 10px 25px;         
     border-radius: 50px;
     margin-top: 10px;
-    color: #8800ff;
-    background-color: #ffffff;
+    color: #ffffff;
+    
+    backdrop-filter: blur(10px);
 }
 
 a:hover {
     transform: scale(1.2);
-    color: #000000 !important;
+    color:  #8800ff !important;
     cursor: url('138daa72d9b1259fcea4c2f9036f90f0.png'), pointer;
+    letter-spacing: 3px;
+    padding: 10px 60px;
     
 }
 body {
     margin: 0;
     padding: 0;
     min-height: 100vh;
-    background-image: url('69603056_uyfydu6.svg');
+    background-image: url('418156561_f91c073d-c074-489e-8d96-cb92966c877b.svg');
     background-size: cover;      
     background-position: center; 
     background-repeat: no-repeat;
