@@ -133,3 +133,80 @@ margin-top: 10vh;
     max-width: 10vh;
 }
 
+
+
+
+
+
+
+
+
+/* Контейнер бота в стиле твоих карточек */
+.ai-box {
+    position: fixed;
+    right: 20px;
+    top: 20px;
+    width: 260px;
+    padding: 15px;
+    backdrop-filter: blur(15px);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    color: white;
+    font-family: sans-serif;
+    z-index: 1000;
+   
+}
+
+
+.ai-header {
+    font-size: 15px;
+    font-weight: bold;
+    text-transform: uppercase;
+    opacity: 0.6;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 10px;
+}
+
+#bot-text {
+    font-size: 14px;
+    min-height: 40px;
+    margin: 10px 0;
+}
+
+.ai-controls {
+    display: flex;
+    gap: 10px;
+}
+
+#bot-input {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    color: white;
+    padding: 8px;
+    outline: none;
+    transition: 0.3s;
+}
+
+#bot-input:focus {
+    border-color: #8800ff;
+}
+
+.ai-box button {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    color: white;
+    cursor: url('138daa72d9b1259fcea4c2f9036f90f0.png'), pointer;
+    font-weight: bold;
+    transition: 0.3s;
+    padding-inline: 20px;
+}
+
+.ai-box button:hover {
+    color: #8800ff;
+    transform: scale(1.1);
+}
