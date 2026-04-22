@@ -113,22 +113,24 @@ margin-top: 10vh;
 
 .tryas {
 
-        display: flex;
+    display: flex;
     align-items: center;
     justify-content: center;
-    margin-top: 50px;
+    
     gap: 15px;
     min-width: 200px;
     margin: 10px auto;
     text-decoration: none;
+    background: rgba(255, 255, 255, 0.1);
     
     font-weight: bold;
     transition: all 0.5s ease;
     border: 1px solid rgba(255, 255, 255, 0.2);
     padding: 10px 25px;         
     border-radius: 50px;
-    margin-top: 10vh;
+    margin-top: 5vh;
     color: #ffffff;
+    
     
     backdrop-filter: blur(10px);
     max-width: 10vh;
