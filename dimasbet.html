@@ -1,16 +1,126 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ДимасБет лучшая контора</title>
+    <title>ДимасБет лучшая контора                                          пидорасов</title>
+    <style>
+        :root {
+            --accent-green: #2ecc71;
+            --accent-red: #ff0000;
+            --bright-pink: #ff00ff;
+        }
+
+        body {
+            /* Фоновая картинка - красная кожа */
+            background: url('Без названия.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: white;
+            font-family: 'Arial Black', Gadget, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        h1 {
+            text-transform: uppercase;
+            margin: 10px 0;
+            text-shadow: 3px 3px 0px #000;
+            text-align: center;
+        }
+
+        .main-title { font-size: 50px; color: #fff; }
+        .brand-title { font-size: 70px; color: #0000ff; }
+        .slogan-title { font-size: 40px; color: #ff0000; }
+
+        /* --- ЧИСТАЯ ВЕРСТКА РУЛЕТКИ --- */
+        .roulette-container {
+            position: relative;
+            width: 320px; /* Размер всего блока */
+            height: 320px;
+            margin: 30px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Указатель (розовый треугольник) */
+        .pointer {
+            position: absolute;
+            top: -15px; /* Немного выше колеса */
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 35px solid var(--bright-pink);
+            z-index: 10; /* Сверху всего */
+            filter: drop-shadow(0 0 5px #000);
+        }
+
+        /* Само колесо */
+#wheel {
+    /* 1. Устанавливаем строго одинаковую ширину и высоту */
+    width: 300px; 
+    height: 300px;
+    
+    /* 2. Гарантируем пропорции 1 к 1 */
+    aspect-ratio: 1 / 1; 
+    
+    /* 3. Округляем края на 50% */
+    border-radius: 50%;
+    
+    /* 4. Центрируем градиент */
+    background: conic-gradient(
+        #2ecc71 0deg 355deg, 
+        #ff0000 355deg 360deg
+    );
+    
+    border: 8px solid #222;
+    box-shadow: 0 0 50px rgba(0,0,0,0.8);
+    transition: transform 4s cubic-bezier(0.15, 0, 0.15, 1);
+    
+    /* Убираем любые возможные растяжения от флексбоксов */
+    flex-shrink: 0; 
+}
+
+        /* --- КНОПКА --- */
+        .bet-btn {
+            background: linear-gradient(180deg, #8a2be2 0%, #4b0082 100%);
+            border: 2px solid #fff;
+            padding: 20px 60px;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-radius: 15px;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #333;
+            transition: 0.2s;
+        }
+
+        .bet-btn:disabled {
+            filter: grayscale(1);
+            cursor: not-allowed;
+        }
+    </style>
 </head>
-<body background="Без названия.jpg">
-    <div style="display: flex; justify-content: center; align-items: center; margin: 20px 0;">
-    <img src="image-Photoroom.png" alt="" style="width: 250px; height: auto;">
-</div>
-    <h1 style="color: rgb(255, 255, 255);text-align: center;font-size: 60px;">офицальный сайт</h1>
-    <h1 style="color: rgb(0, 0, 255);text-align: center;font-size: 60px;">Димас бет</h1>
-    <h1 style="color: rgb(255, 0, 0);text-align: center;font-size: 60px;">Не наебалова здесь нет</h1>
+<body>
+
+    <h1 class="main-title">офицальный сайт</h1>
+    <h1 class="brand-title">Димас бет</h1>
+    <h1 class="slogan-title">Не наебалова здесь нет</h1>
+
+    <div class="roulette-container">
+        <div class="pointer"></div>
+        <div id="wheel"></div>
+    </div>
+
+    <button id="bet-button" class="bet-btn">СДЕЛАТЬ СТАВКУ</button>
+
+    <script src="stavki.js"></script>
 </body>
 </html>
