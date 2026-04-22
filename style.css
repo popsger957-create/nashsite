@@ -42,7 +42,7 @@
     cursor: url('138daa72d9b1259fcea4c2f9036f90f0.png'), pointer;
 }
 
-a {
+.card a {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -63,7 +63,7 @@ a {
     backdrop-filter: blur(10px);
 }
 
-a:hover {
+.card a:hover {
     transform: scale(1.2);
     color:  #8800ff !important;
     cursor: url('138daa72d9b1259fcea4c2f9036f90f0.png'), pointer;
@@ -212,4 +212,72 @@ margin-top: 10vh;
 .ai-box button:hover {
     color: #8800ff;
     transform: scale(1.1);
+}
+
+.ad {
+
+        position: fixed;
+    left: 20px;
+    top: 50px;
+    width: fit-content;
+    padding: 10px;
+    backdrop-filter: blur(15px);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    color: white;
+    font-family: sans-serif;
+    z-index: 1000;
+    max-width: 35vh;
+    height: 60vh;
+    
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    box-sizing: border-box;
+   
+}
+
+.ad img{
+
+    max-width: 80%; 
+    height: 100%;    
+    display: block; 
+    margin-bottom: 20px; 
+    border-radius: 10px;
+    transition: 0.3s;
+    font-size: 0;
+    line-height: 0;
+    
+    
+}
+
+.ad h2 {
+    margin: 0;
+    font-size: 24px;
+    
+}
+.ad img:hover {
+    
+
+    width: 40vh;
+    transform: scale(1.2);
+    filter: brightness(1.1);
+    cursor:url('138daa72d9b1259fcea4c2f9036f90f0.png'), pointer;
+    
+}
+
+
+
+
+.ad a {
+    display: flex;           
+    justify-content: center;  
+    align-items: center;
+    width: 100%;              
+    text-decoration: none;
+    line-height: 0;
+    margin: 0;
 }
