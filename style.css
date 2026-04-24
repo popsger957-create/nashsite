@@ -347,6 +347,13 @@ text-align: center;
 }
 
 
+marquee{
+z-index: 9999;
+
+
+}
+
+
 
 
 
@@ -464,6 +471,14 @@ body {
         box-sizing: border-box;
         font-size: 14px;
     }
+
+    .marquee{
+z-index: 9999;
+
+
+}
+
+
 
     /* Отключаем кастомные курсоры на мобилках (их там нет) */
     * {

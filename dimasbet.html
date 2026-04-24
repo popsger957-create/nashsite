@@ -106,6 +106,45 @@
             filter: grayscale(1);
             cursor: not-allowed;
         }
+
+
+
+
+
+
+
+.music-card {
+    /* Убираем margin: 0 auto, если он был, и ставим конкретные отступы */
+    margin-top: 20px;
+    margin-left: 20px; 
+    margin-right: auto; /* Это вытолкнет блок влево */
+    
+    padding: 20px;
+    text-align: left; /* Текст внутри тоже влево */
+    
+    /* Добавляем self-alignment, чтобы перебить настройки body */
+    align-self: flex-start; 
+    
+    width: fit-content; /* Чтобы карточка не растягивалась на весь экран */
+}
+
+audio {
+    filter: invert(100%) hue-rotate(270deg) brightness(1.5);
+    opacity: 0.8;
+    height: 40px;
+    /* На мобилках 50vh может быть слишком много, лучше юзать max-width */
+    width: 300px; 
+    max-width: 80vw; 
+    display: block; /* Убирает лишние отступы снизу */
+}
+
+/* Фикс для мобилок, чтобы не прилипало совсем вплотную */
+@media (max-width: 850px) {
+    .music-card {
+        margin-left: 10px;
+        align-self: flex-start; /* Оставляем слева или поменяй на center, если захочешь */
+    }
+}
     </style>
 </head>
 <body>
@@ -120,6 +159,13 @@
     </div>
 
     <button id="bet-button" class="bet-btn">СДЕЛАТЬ СТАВКУ</button>
+
+<div class="card music-card">
+    <p>Музыка🎵</p>
+    <audio controls>
+        <source src="misic.mp3" type="audio/mpeg">
+    </audio>
+</div>
 
     <script src="stavki.js"></script>
 </body>
