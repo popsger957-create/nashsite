@@ -230,7 +230,7 @@ margin-top: 10vh;
     font-family: sans-serif;
     z-index: 1000;
     max-width: 35vh;
-    height: 60vh;
+    height: 85vh;
     
     display: flex;
     flex-direction: column;
@@ -292,6 +292,7 @@ padding: 40px;
 color: white;
 min-height: auto;
 width:290px;
+
 
 margin: 0 auto;
 margin-top: 10vh;
