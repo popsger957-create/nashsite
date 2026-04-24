@@ -21,7 +21,7 @@ const START_POP = 8388474211;
 const START_DATE = new Date("2026-04-24T20:05:25").getTime();
 
 // Средний прирост населения в мире (~2.53 человека в секунду)
-const GROWTH_RATE = 0.002535; 
+const GROWTH_RATE = 0.003362; 
 
 function updateCounter() {
     const now = Date.now();
