@@ -6,7 +6,7 @@ clickBtn.addEventListener('click', () => {
         clicks++;
         display.innerText = clicks;
 
-        if (clicks === 10) {
+        if (clicks === 1000) {
         alert("Ошибка! Видно не судьба((((");
         
         
