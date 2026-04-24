@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<!-- saved from url=(0031)http://127.0.0.1:5500/vibe.html -->
+<html lang="ru"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vibe Station</title>
+    <style>
+
+        body {
+    background-size: cover !important;
+    background-repeat: no-repeat !important;
+    background-attachment: fixed !important;
+    background-position: center !important;
+}
+        :root {
+            --accent: #9d4edd;
+            --glass: rgba(15, 15, 15, 0.7);
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background-color: #000;
+            font-family: 'Segoe UI', sans-serif;
+            overflow: hidden;
+        }
+
+        /* Полноэкранный фон */
+#giphy-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-size: cover !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    z-index: -2;
+    transition: background-image 0.8s ease-in-out;
+}
+        /* Легкий блюр и затемнение, чтобы гифка не била по глазам */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            backdrop-filter: blur(4px); /* Уменьшил блюр, чтобы было видно детали */
+            background: rgba(0, 0, 0, 0.3);
+            z-index: -1;
+        }
+
+        /* Верхняя панель управления */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px 0;
+            
+            
+            z-index: 10;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            width: 90%;
+            max-width: 600px;
+        }
+
+        input {
+            flex-grow: 1;
+            background: rgba(28, 16, 16, 0.411);
+            border: 1px solid rgba(157, 78, 221, 0.5);
+            padding: 10px 15px;
+            border-radius: 8px;
+            color: white;
+            outline: none;
+            transition: 0.3s;
+           
+            backdrop-filter: blur(100px);
+        }
+
+        input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 10px rgba(157, 78, 221, 0.3);
+        }
+
+        button {
+            background: var(--accent);
+            border: none;
+            padding: 10px 20px;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            white-space: nowrap;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            filter: brightness(1.2);
+            box-shadow: 0 0 15px var(--accent);
+        }
+
+        #statusText {
+            position: fixed;
+            bottom: 10px;
+            right: 15px;
+            color: var(--accent);
+            font-family: monospace;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body style="background-image: url(&quot;https://media2.giphy.com/media/v1.Y2lkPTRlYjVkMmQzeTgxcTU4bHM5am1pcDlzcmd3NWkxbnhyeXVnNnBpaDZrZTdyMjhzcCZlcD12MV9naWZzX3JhbmRvbSZjdD1n/iGL6BvKgitHR8gFNDQ/giphy.gif&quot;);">
+
+    <div id="giphy-bg" style="background-image: url(&quot;https://media2.giphy.com/media/v1.Y2lkPTRlYjVkMmQzeTgxcTU4bHM5am1pcDlzcmd3NWkxbnhyeXVnNnBpaDZrZTdyMjhzcCZlcD12MV9naWZzX3JhbmRvbSZjdD1n/iGL6BvKgitHR8gFNDQ/giphy.gif&quot;);"></div>
+    <div class="overlay"></div>
+
+    <header class="top-bar">
+        <div class="controls">
+            <input type="text" id="tagInput" placeholder="Введите вайб (например: glitch, pixel art, opium)..." value="cyberpunk purple">
+            <button onclick="updateVibe()">Сменить</button>
+        </div>
+    </header>
+
+    <div id="statusText">Current vibe: cyberpunk purple</div>
+
+    <script>
+      const API_KEY = 'wkJMyT9Bbo9dtjOX8mgQJ86QFhIWku8B'; 
+
+async function updateVibe() {
+    const tag = document.getElementById('tagInput').value;
+    const status = document.getElementById('statusText');
+    const bg = document.getElementById('giphy-bg');
+    
+    status.innerText = `Updating: ${tag}...`;
+
+    // Добавляем случайное число к запросу, чтобы API не отдавал одну и ту же гифку
+    const offset = Math.floor(Math.random() * 50);
+    const url = `https://api.giphy.com/v1/gifs/random?api_key=${API_KEY}&tag=${tag}&rating=g`;
+
+    try {
+        const response = await fetch(url);
+        const json = await response.json();
+        
+        if (json.data && json.data.images) {
+            // Берем версию, которая гарантированно работает в браузере
+            const imgUrl = json.data.images.original.url;
+            
+            // Прямая вставка в стили body и div
+            bg.style.backgroundImage = `url('${imgUrl}')`;
+            document.body.style.backgroundImage = `url('${imgUrl}')`;
+            
+            status.innerText = `Current vibe: ${tag}`;
+            console.log("Успех! Ссылка на гифку:", imgUrl);
+        } else {
+            status.innerText = "Error: Nothing found";
+        }
+    } catch (error) {
+        console.error("Ошибка:", error);
+        status.innerText = "Error: API Blocked or Down";
+    }
+}
+
+window.onload = updateVibe;
+
+
+
+// Находим наше поле ввода по ID
+const input = document.getElementById("tagInput");
+
+// Слушаем нажатие клавиш в этом поле
+input.addEventListener("keypress", function(event) {
+  // Если нажатая клавиша — Enter (код 13)
+  if (event.key === "Enter") {
+    // Отменяем стандартное действие (на всякий случай)
+    event.preventDefault();
+    // Вызываем ту же функцию, что и при нажатии на кнопку
+    updateVibe();
+  }
+});
+    </script>
+<!-- Code injected by live-server -->
+<script>
+	// <![CDATA[  <-- For SVG support
+	if ('WebSocket' in window) {
+		(function () {
+			function refreshCSS() {
+				var sheets = [].slice.call(document.getElementsByTagName("link"));
+				var head = document.getElementsByTagName("head")[0];
+				for (var i = 0; i < sheets.length; ++i) {
+					var elem = sheets[i];
+					var parent = elem.parentElement || head;
+					parent.removeChild(elem);
+					var rel = elem.rel;
+					if (elem.href && typeof rel != "string" || rel.length == 0 || rel.toLowerCase() == "stylesheet") {
+						var url = elem.href.replace(/(&|\?)_cacheOverride=\d+/, '');
+						elem.href = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_cacheOverride=' + (new Date().valueOf());
+					}
+					parent.appendChild(elem);
+				}
+			}
+			var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
+			var address = protocol + window.location.host + window.location.pathname + '/ws';
+			var socket = new WebSocket(address);
+			socket.onmessage = function (msg) {
+				if (msg.data == 'reload') window.location.reload();
+				else if (msg.data == 'refreshcss') refreshCSS();
+			};
+			if (sessionStorage && !sessionStorage.getItem('IsThisFirstTime_Log_From_LiveServer')) {
+				console.log('Live reload enabled.');
+				sessionStorage.setItem('IsThisFirstTime_Log_From_LiveServer', true);
+			}
+		})();
+	}
+	else {
+		console.error('Upgrade your browser. This Browser is NOT supported WebSocket for Live-Reloading.');
+	}
+	// ]]>
+</script>
+
+</body></html>
