@@ -16,29 +16,32 @@ clickBtn.addEventListener('click', () => {
         
 });
 
+// Твои актуальные данные
+const START_POP = 8388474211; 
+const START_DATE = new Date("2026-04-24T20:05:25").getTime();
 
+// Средний прирост населения в мире (~2.53 человека в секунду)
+const GROWTH_RATE = 0.002535; 
 
-
-    async function updateOnlineStatus() {
-        const url = 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://countrymeters.info/ru/World');
-        
-        try {
-            const response = await fetch(url);
-            const data = await response.json();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(data.contents, 'text/html');
-            
-            // Берем число из источника
-            const population = doc.getElementById('cp1').innerText;
-            
-            // Вставляем в твой <h3>
-            document.getElementById('online-count').innerText = population;
-        } catch (e) {
-            console.log("Ошибка обновления");
-        }
+function updateCounter() {
+    const now = Date.now();
+    const passed = now - START_DATE;
+    
+    // Если время на компьютере пользователя отстает от START_DATE, 
+    // используем базовое число, чтобы не уйти в минус
+    const diff = Math.max(0, passed);
+    
+    const currentPop = Math.floor(START_POP + (diff * GROWTH_RATE));
+    
+    // Форматируем число (например: 8 388 474 211)
+    const formatted = currentPop.toLocaleString('ru-RU');
+    
+    const display = document.getElementById('online-count');
+    if (display) {
+        display.innerText = formatted;
     }
+}
 
-    // Запускаем
-    updateOnlineStatus();
-    // Обновляем раз в 10 секунд для реализма
-    setInterval(updateOnlineStatus, 10000);
+// Запускаем обновление каждые 100мс
+setInterval(updateCounter, 100);
+updateCounter();
