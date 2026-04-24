@@ -15,7 +15,10 @@
     min-height: auto;
     width:fit-content;
 
+    flex-wrap: wrap;
+
     margin: 0 auto;
+    
 }
 
 .header-logo {
@@ -40,6 +43,23 @@
     letter-spacing: 5px;
     color: #8800ff;
     cursor: url('138daa72d9b1259fcea4c2f9036f90f0.png'), pointer;
+}
+
+
+.online {
+    flex-basis: 80%; 
+    text-align: center; 
+    margin-top: 1px;
+    color: rgb(0, 255, 0);
+    filter: brightness(10);
+}
+
+.ofline {
+    flex-basis: 80%; 
+    text-align: center; 
+    margin-top: 1px;
+    color: rgb(255, 0, 0);
+    filter: brightness(10);
 }
 
 .card a {
@@ -485,3 +505,5 @@ z-index: 9999;
         cursor: auto !important;
     }
 }
+
+
