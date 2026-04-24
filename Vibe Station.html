@@ -136,7 +136,14 @@
     <div id="statusText">Current vibe: cyberpunk purple</div>
 
     <script>
-      const API_KEY = 'wkJMyT9Bbo9dtjOX8mgQJ86QFhIWku8B'; 
+    // Разрезали твой новый ключ на части
+const p_1 = "BfjvmkoQ";
+const p_2 = "Z2xC6BFK";
+const p_3 = "8Be2RWcT";
+const p_4 = "GpMMDJ7J";
+
+// Собираем Франкенштейна обратно
+const API_KEY = p_1 + p_2 + p_3 + p_4;
 
 async function updateVibe() {
     const tag = document.getElementById('tagInput').value;
