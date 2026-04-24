@@ -345,3 +345,128 @@ text-align: center;
     margin-top: 10px; 
     font-family: sans-serif;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@media (max-width: 850px) {
+    /* 1. Общие настройки фона */
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column; /* Элементы будут идти друг под другом */
+    align-items: center;    /* Центровка по горизонтали */
+    justify-content: flex-start; /* Начинаем сверху, чтобы можно было скроллить */
+    background-image: url('418156561_f91c073d-c074-489e-8d96-cb92966c877b.svg');
+    background-size: cover;      
+    background-position: center; 
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    gap: 20px; /* Расстояние между блоками */
+}
+
+    /* 2. Шапка (делаем компактнее) */
+    .header-container {
+        width: 90%;
+        margin-top: 20px;
+        padding: 15px;
+        flex-direction: row; /* Оставляем лого и текст в ряд */
+        gap: 10px;
+    }
+
+    .header-logo {
+        height: 35px; /* Чуть меньше */
+    }
+
+    .title {
+        font-size: 1.2rem;
+    }
+
+    /* 3. Отключаем сильные ховеры (на тачскринах они только мешают) */
+    .card a:hover {
+        transform: scale(1.05); /* Вместо 1.2, чтобы не вылетало за экран */
+        padding: 10px 30px;
+    }
+
+    /* 4. Основная карточка */
+    .card {
+        width: 85%;
+        margin-top: 30px;
+        padding: 20px;
+    }
+
+    /* 5. РЕКЛАМА И БОТ (Самое важное) */
+    /* Убираем fixed позиционирование, иначе они закроют весь контент */
+    .ai-box, .ad, #clickBtn {
+        position: relative; 
+        width: 90% !important;
+        max-width: none !important;
+        height: auto !important;
+        left: 0 !important;
+        right: 0 !important;
+        top: 0 !important;
+        margin: 20px auto !important;
+        box-sizing: border-box;
+    }
+
+    /* Блок бота */
+    .ai-box {
+        order: 1; /* Можно управлять порядком появления */
+    }
+
+    /* Рекламный блок */
+    .ad {
+        padding: 20px;
+    }
+
+    .ad img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    /* Кликер */
+    #clickBtn {
+        padding: 20px;
+    }
+
+    /* 6. Кнопки и ссылки */
+    .card a, .tryas {
+        min-width: 0;
+        width: 100%;
+        box-sizing: border-box;
+        font-size: 14px;
+    }
+
+    /* Отключаем кастомные курсоры на мобилках (их там нет) */
+    * {
+        cursor: auto !important;
+    }
+}
