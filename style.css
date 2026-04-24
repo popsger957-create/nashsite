@@ -314,8 +314,28 @@ text-align: center;
     margin: 0 auto;
     
     
-    transition: transform 0.2s ease;
+    transition: transform 0.1s ease;
 }
+
+#clickBtn img:hover{
+
+    transform: scale(1.2);
+    filter: brightness(1.3);
+    cursor:url('138daa72d9b1259fcea4c2f9036f90f0.png'), pointer;
+    
+    
+
+}
+
+#clickBtn img:active{
+
+    transform: scale(1);
+    cursor:url('138daa72d9b1259fcea4c2f9036f90f0.png'), pointer;
+    
+    
+
+}
+
 #score {
     display: block;
     font-size: 24px;
