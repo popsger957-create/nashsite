@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Minimal Arkanoid</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            touch-action: none; /* Запрет прокрутки и жестов браузера */
+            background-color: #f1f5f9;
+            color: #334155;
+            font-family: ui-sans-serif, system-ui, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 95vw;
+            max-width: 450px;
+            height: 85dvh; /* Динамическая высота для мобильных */
+            max-height: 600px;
+            background-color: #ffffff;
+            border: 4px solid #1e293b;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+            -webkit-tap-highlight-color: transparent; /* Убирает подсветку клика в Safari */
+        }
+
+        .score-board {
+            position: absolute;
+            top: 15px;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            font-family: ui-monospace, monospace;
+            font-weight: 800;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #game-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            backdrop-filter: blur(4px);
+        }
+
+        .btn {
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            cursor: pointer;
+            z-index: 60;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div class="score-board">
+            <div class="text-center">
+                <div class="text-slate-300 text-[10px] uppercase tracking-widest">Best</div>
+                <div class="text-slate-400 text-sm" id="best-score">0</div>
+            </div>
+            <div class="text-center">
+                <div class="text-slate-300 text-[10px] uppercase tracking-widest">Score</div>
+                <div class="text-2xl text-slate-800" id="current-score">0</div>
+            </div>
+        </div>
+
+        <canvas id="game-canvas"></canvas>
+
+        <div id="game-overlay">
+            <div class="mb-8 text-center px-4">
+                <div id="status-text" class="text-slate-400 text-xs uppercase tracking-[0.3em] mb-2">Ready?</div>
+                <div class="text-6xl font-black text-slate-800" id="final-score-display">0</div>
+            </div>
+            <button id="start-btn" class="btn bg-slate-800 text-white px-12 py-5 rounded-full font-bold hover:bg-slate-700 active:scale-95 shadow-xl text-base uppercase tracking-widest">
+                Начать
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('current-score');
+        const bestEl = document.getElementById('best-score');
+        const overlay = document.getElementById('game-overlay');
+        const startBtn = document.getElementById('start-btn');
+        const finalScoreEl = document.getElementById('final-score-display');
+        const statusText = document.getElementById('status-text');
+
+        let isRunning = false;
+        let score = 0;
+        let bestScore = localStorage.getItem('arkanoid_best') || 0;
+        bestEl.innerText = bestScore;
+
+        const config = {
+            ballRadius: 8,
+            paddleHeight: 14, // Немного увеличили для удобства тача
+            paddleWidth: 90,
+            paddleSpeed: 8,
+            rows: 6,
+            cols: 5,
+            padding: 8,
+            offsetTop: 70,
+            offsetLeft: 15
+        };
+
+        let ball, paddle, bricks;
+        let keys = { left: false, right: false };
+
+        function resize() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function initData() {
+            score = 0;
+            scoreEl.innerText = "0";
+            const bWidth = (canvas.width - (config.offsetLeft * 2) - (config.padding * (config.cols - 1))) / config.cols;
+            
+            ball = {
+                x: canvas.width / 2,
+                y: canvas.height - 80,
+                dx: 4 * (Math.random() > 0.5 ? 1 : -1),
+                dy: -4
+            };
+
+            paddle = { x: (canvas.width - config.paddleWidth) / 2 };
+
+            bricks = [];
+            for (let c = 0; c < config.cols; c++) {
+                bricks[c] = [];
+                for (let r = 0; r < config.rows; r++) {
+                    bricks[c][r] = { 
+                        x: c * (bWidth + config.padding) + config.offsetLeft, 
+                        y: r * (20 + config.padding) + config.offsetTop, 
+                        w: bWidth, h: 20, status: 1 
+                    };
+                }
+            }
+        }
+
+        function draw() {
+            if (!isRunning) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Плавное движение платформы от клавиатуры
+            if (keys.left) paddle.x -= config.paddleSpeed;
+            if (keys.right) paddle.x += config.paddleSpeed;
+            paddle.x = Math.max(0, Math.min(canvas.width - config.paddleWidth, paddle.x));
+
+            // Мяч
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, config.ballRadius, 0, Math.PI * 2);
+            ctx.fillStyle = "#1e293b";
+            ctx.fill();
+            ctx.closePath();
+
+            // Платформа
+            ctx.beginPath();
+            ctx.roundRect(paddle.x, canvas.height - config.paddleHeight - 20, config.paddleWidth, config.paddleHeight, 6);
+            ctx.fillStyle = "#1e293b";
+            ctx.fill();
+            ctx.closePath();
+
+            // Кирпичи
+            let activeBricks = 0;
+            for (let c = 0; c < config.cols; c++) {
+                for (let r = 0; r < config.rows; r++) {
+                    const b = bricks[c][r];
+                    if (b.status === 1) {
+                        activeBricks++;
+                        ctx.beginPath();
+                        ctx.roundRect(b.x, b.y, b.w, b.h, 4);
+                        ctx.fillStyle = "#ef4444";
+                        ctx.fill();
+                        ctx.closePath();
+
+                        // Столкновение с кирпичом
+                        if (ball.x > b.x && ball.x < b.x + b.w && ball.y > b.y && ball.y < b.y + b.h) {
+                            ball.dy = -ball.dy;
+                            b.status = 0;
+                            score++;
+                            scoreEl.innerText = score;
+                        }
+                    }
+                }
+            }
+
+            if (activeBricks === 0) endGame("You Win!");
+
+            // Физика отскоков
+            if (ball.x + ball.dx > canvas.width - config.ballRadius || ball.x + ball.dx < config.ballRadius) ball.dx = -ball.dx;
+            if (ball.y + ball.dy < config.ballRadius) ball.dy = -ball.dy;
+            else if (ball.y + ball.dy > canvas.height - config.ballRadius - 20 - config.paddleHeight) {
+                // Касание платформы
+                if (ball.x > paddle.x && ball.x < paddle.x + config.paddleWidth) {
+                    const hitPoint = (ball.x - (paddle.x + config.paddleWidth / 2)) / (config.paddleWidth / 2);
+                    ball.dy = -Math.abs(ball.dy);
+                    ball.dx = hitPoint * 6; // Изменяем угол в зависимости от места удара
+                } else if (ball.y + ball.dy > canvas.height) {
+                    endGame("Game Over");
+                }
+            }
+
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+            requestAnimationFrame(draw);
+        }
+
+        function endGame(text) {
+            isRunning = false;
+            statusText.innerText = text;
+            finalScoreEl.innerText = score;
+            overlay.style.display = 'flex';
+            if (score > bestScore) {
+                bestScore = score;
+                localStorage.setItem('arkanoid_best', bestScore);
+                bestEl.innerText = bestScore;
+            }
+        }
+
+        // Управление клавиатурой
+        function handleKey(e, isDown) {
+            if (e.key === "ArrowLeft" || e.key === "a" || e.key === "ф") keys.left = isDown;
+            if (e.key === "ArrowRight" || e.key === "d" || e.key === "в") keys.right = isDown;
+        }
+
+        window.addEventListener('keydown', (e) => handleKey(e, true));
+        window.addEventListener('keyup', (e) => handleKey(e, false));
+
+        // Управление мышью и тачем
+        function handlePointer(e) {
+            if (!isRunning) return;
+            const rect = canvas.getBoundingClientRect();
+            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let relX = clientX - rect.left;
+            paddle.x = Math.max(0, Math.min(canvas.width - config.paddleWidth, relX - config.paddleWidth / 2));
+        }
+
+        window.addEventListener('mousemove', handlePointer);
+        window.addEventListener('touchmove', (e) => {
+            handlePointer(e);
+            if (isRunning) e.preventDefault(); // Запрещаем скролл во время игры
+        }, { passive: false });
+
+        startBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            resize();
+            initData();
+            overlay.style.display = 'none';
+            isRunning = true;
+            requestAnimationFrame(draw);
+        });
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    </script>
+</body>
+</html>

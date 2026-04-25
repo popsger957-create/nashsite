@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Minimal Stack</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            touch-action: none; /* Отключаем системные жесты */
+            background-color: #f1f5f9;
+            color: #334155;
+            font-family: ui-sans-serif, system-ui, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            user-select: none; /* Запрещаем выделение */
+            -webkit-user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            height: 100dvh; /* Используем динамическую высоту вьюпорта для мобильных */
+            max-height: 700px;
+            background-color: #ffffff;
+            border: 4px solid #1e293b;
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent; /* Убираем синий квадрат при тапе в Safari */
+        }
+
+        .score-board {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            font-family: ui-monospace, monospace;
+            font-weight: 800;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        #game-over {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 30;
+            backdrop-filter: blur(8px);
+        }
+
+        #restart-btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div class="score-board">
+            <div class="text-slate-300 text-[10px] uppercase tracking-widest">Best: <span id="best-score">0</span></div>
+            <div class="text-4xl text-slate-800 leading-none mt-1" id="current-score">0</div>
+        </div>
+
+        <canvas id="game-canvas"></canvas>
+
+        <div id="game-over">
+            <div class="mb-8 text-center px-4">
+                <div class="text-slate-300 text-xs uppercase tracking-[0.3em] mb-2">Final Height</div>
+                <div class="text-6xl font-black text-slate-800" id="final-score-display">0</div>
+            </div>
+            <button id="restart-btn" class="bg-slate-800 text-white px-14 py-5 rounded-full font-bold hover:bg-slate-700 active:scale-90 shadow-2xl text-base uppercase tracking-widest">
+                Начать
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('current-score');
+        const bestEl = document.getElementById('best-score');
+        const gameOverEl = document.getElementById('game-over');
+        const restartBtn = document.getElementById('restart-btn');
+        const finalScoreDisplay = document.getElementById('final-score-display');
+
+        function resize() {
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        let isGameOver = true;
+        let score = 0;
+        let bestScore = localStorage.getItem('stack_best') || 0;
+        bestEl.innerText = bestScore;
+
+        const BOX_HEIGHT = 40;
+        const INITIAL_WIDTH = 200;
+        
+        let stack = [];
+        let currentBlock = {};
+        let direction = 1;
+        let speed = 2;
+        let cameraY = 0;
+        let targetCameraY = 0;
+
+        function initGame() {
+            score = 0;
+            scoreEl.innerText = score;
+            speed = 3;
+            direction = 1;
+            cameraY = 0;
+            targetCameraY = 0;
+            isGameOver = false;
+            gameOverEl.style.display = 'none';
+
+            // Основание башни
+            stack = [{
+                x: (canvas.width - INITIAL_WIDTH) / 2,
+                y: canvas.height - BOX_HEIGHT - 80,
+                w: INITIAL_WIDTH,
+                color: '#1e293b'
+            }];
+
+            newBlock();
+            requestAnimationFrame(animate);
+        }
+
+        function newBlock() {
+            const last = stack[stack.length - 1];
+            currentBlock = {
+                x: direction === 1 ? -last.w : canvas.width,
+                y: last.y - BOX_HEIGHT,
+                w: last.w,
+                color: stack.length % 2 === 0 ? '#1e293b' : '#ef4444'
+            };
+            
+            if (stack.length > 5) {
+                targetCameraY += BOX_HEIGHT;
+            }
+        }
+
+        function handleInput(e) {
+            if (isGameOver) return;
+            // Предотвращаем срабатывание при нажатии на кнопку рестарта (хотя она перекрывает канвас)
+            if (e.target === restartBtn) return;
+            
+            placeBlock();
+        }
+
+        function placeBlock() {
+            const last = stack[stack.length - 1];
+            const diff = currentBlock.x - last.x;
+            
+            if (Math.abs(diff) >= currentBlock.w) {
+                endGame();
+                return;
+            }
+
+            // Логика "обрезания" блока
+            if (diff > 0) {
+                currentBlock.w -= diff;
+            } else {
+                currentBlock.w += diff;
+                currentBlock.x = last.x;
+            }
+
+            stack.push({...currentBlock});
+            score++;
+            scoreEl.innerText = score;
+            
+            speed += 0.12; // Небольшое ускорение для азарта
+            direction *= -1;
+            
+            newBlock();
+        }
+
+        function endGame() {
+            isGameOver = true;
+            finalScoreDisplay.innerText = score;
+            gameOverEl.style.display = 'flex';
+
+            if (score > bestScore) {
+                bestScore = score;
+                localStorage.setItem('stack_best', bestScore);
+                bestEl.innerText = bestScore;
+            }
+        }
+
+        function animate() {
+            if (isGameOver) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Плавное слежение камеры
+            cameraY += (targetCameraY - cameraY) * 0.1;
+
+            ctx.save();
+            ctx.translate(0, cameraY);
+
+            // Рисуем башню
+            stack.forEach(block => {
+                ctx.fillStyle = block.color;
+                ctx.fillRect(block.x, block.y, block.w, BOX_HEIGHT);
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(block.x, block.y, block.w, BOX_HEIGHT);
+            });
+
+            // Рисуем летящий блок
+            ctx.fillStyle = currentBlock.color;
+            ctx.fillRect(currentBlock.x, currentBlock.y, currentBlock.w, BOX_HEIGHT);
+            ctx.strokeRect(currentBlock.x, currentBlock.y, currentBlock.w, BOX_HEIGHT);
+
+            ctx.restore();
+
+            currentBlock.x += speed * direction;
+            
+            // Если блок улетел слишком далеко за границы - проигрыш
+            if (currentBlock.x + currentBlock.w > canvas.width + currentBlock.w || currentBlock.x < -currentBlock.w * 2) {
+                endGame();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Управление
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                handleInput(e);
+            }
+        });
+        
+        canvas.addEventListener('mousedown', handleInput);
+        
+        // Мобильное управление
+        canvas.addEventListener('touchstart', (e) => {
+            if (!isGameOver) {
+                e.preventDefault(); // Запрет скролла и зума во время игры
+                handleInput(e);
+            }
+        }, { passive: false });
+
+        restartBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            initGame();
+        });
+
+        // Показ стартового экрана
+        gameOverEl.style.display = 'flex';
+        finalScoreDisplay.innerText = "0";
+    </script>
+</body>
+</html>

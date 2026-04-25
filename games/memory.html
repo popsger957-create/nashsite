@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Минималистичное Мемори: Большой набор</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            touch-action: manipulation;
+            background-color: #f1f5f9;
+            color: #334155;
+            font-family: ui-sans-serif, system-ui, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .card-container {
+            perspective: 1000px;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+
+        .card-inner.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem; /* Увеличенный размер для смайликов */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        @media (max-width: 400px) {
+            .card-front, .card-back {
+                font-size: 1.8rem;
+            }
+        }
+
+        .card-front {
+            background-color: #ffffff;
+            border: 2px solid #e2e8f0;
+        }
+
+        .card-back {
+            background-color: #1e293b;
+            color: white;
+            transform: rotateY(180deg);
+        }
+
+        .card-inner.is-matched .card-back {
+            background-color: #10b981;
+        }
+
+        #game-grid {
+            display: grid;
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .grid-4x4 { grid-template-columns: repeat(4, 1fr); }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="w-full max-w-md flex justify-between items-center mb-6">
+        <div>
+            <div class="text-slate-400 text-[10px] uppercase tracking-widest">Время</div>
+            <div id="timer" class="text-xl font-mono font-bold text-slate-800">00:00</div>
+        </div>
+        <div class="text-center">
+            <div class="text-slate-400 text-[10px] uppercase tracking-widest">Ходы</div>
+            <div id="moves" class="text-xl font-mono font-bold text-slate-800">0</div>
+        </div>
+        <div class="text-right">
+            <div class="text-slate-400 text-[10px] uppercase tracking-widest">Рекорд</div>
+            <div id="best-time" class="text-xl font-mono font-bold text-slate-800">--:--</div>
+        </div>
+    </div>
+
+    <div id="game-grid" class="w-full max-w-md grid-4x4 aspect-square"></div>
+
+    <button id="reset-btn" class="mt-6 bg-slate-800 text-white px-8 py-3 rounded-full font-bold active:scale-95 transition-transform uppercase text-xs tracking-widest shadow-lg">
+        Сменить набор и начать
+    </button>
+
+    <div id="win-overlay" class="fixed inset-0 bg-white/95 backdrop-blur-md z-50 flex flex-col items-center justify-center hidden p-8 text-center">
+        <div class="text-slate-400 text-xs uppercase tracking-[0.3em] mb-2">Миссия выполнена</div>
+        <h2 class="text-5xl font-black text-slate-800 mb-6">ПОБЕДА!</h2>
+        <div class="space-y-2 mb-8">
+            <p class="text-slate-500">Время: <span id="final-time" class="font-bold text-slate-800"></span></p>
+            <p class="text-slate-500">Ходов: <span id="final-moves" class="font-bold text-slate-800"></span></p>
+        </div>
+        <button id="restart-btn" class="bg-blue-600 text-white px-12 py-4 rounded-full font-bold hover:bg-blue-700 active:scale-95 shadow-xl transition-all uppercase tracking-widest">
+            Играть снова
+        </button>
+    </div>
+
+    <script>
+        // Огромный список различных эмодзи
+        const allSymbols = [
+            '🚀', '🛸', '🛰️', '🪐', '⭐', '☄️', '👽', '🌌', // Космос
+            '🦁', '🐯', '🦒', '🦊', '🐱', '🐶', '🐼', '🐨', // Животные
+            '🍎', '🍕', '🍔', '🍦', '🍩', '🥑', '🍓', '🍣', // Еда
+            '⚽', '🏀', '🎾', '🎮', '🎲', '🎸', '🎨', '🎬', // Хобби
+            '🌈', '🔥', '💧', '⚡', '🍀', '🌸', '🌵', '☀️'  // Природа
+        ];
+
+        const gridContainer = document.getElementById('game-grid');
+        const timerEl = document.getElementById('timer');
+        const movesEl = document.getElementById('moves');
+        const bestTimeEl = document.getElementById('best-time');
+        const winOverlay = document.getElementById('win-overlay');
+        const finalTimeEl = document.getElementById('final-time');
+        const finalMovesEl = document.getElementById('final-moves');
+        
+        let flippedCards = [];
+        let moves = 0;
+        let matchedPairs = 0;
+        let timer = 0;
+        let timerInterval = null;
+        let isLock = false;
+
+        let bestTime = localStorage.getItem('memory_best_time');
+        if (bestTime) bestTimeEl.innerText = formatTime(parseInt(bestTime));
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function startTimer() {
+            if (timerInterval) return;
+            timerInterval = setInterval(() => {
+                timer++;
+                timerEl.innerText = formatTime(timer);
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+
+        function createBoard() {
+            gridContainer.innerHTML = '';
+            
+            // Выбираем 8 случайных уникальных символов из общего списка
+            const shuffledPool = [...allSymbols].sort(() => Math.random() - 0.5);
+            const selectedSymbols = shuffledPool.slice(0, 8);
+            
+            // Создаем пары
+            const gameSymbols = [...selectedSymbols, ...selectedSymbols];
+            gameSymbols.sort(() => Math.random() - 0.5);
+
+            gameSymbols.forEach((symbol) => {
+                const card = document.createElement('div');
+                card.className = 'card-container h-full w-full';
+                card.innerHTML = `
+                    <div class="card-inner" data-symbol="${symbol}">
+                        <div class="card-front"></div>
+                        <div class="card-back">${symbol}</div>
+                    </div>
+                `;
+                card.addEventListener('click', () => flipCard(card.querySelector('.card-inner')));
+                gridContainer.appendChild(card);
+            });
+        }
+
+        function flipCard(cardInner) {
+            if (isLock || cardInner.classList.contains('is-flipped') || cardInner.classList.contains('is-matched')) return;
+
+            startTimer();
+            cardInner.classList.add('is-flipped');
+            flippedCards.push(cardInner);
+
+            if (flippedCards.length === 2) {
+                checkMatch();
+            }
+        }
+
+        function checkMatch() {
+            isLock = true;
+            moves++;
+            movesEl.innerText = moves;
+
+            const [card1, card2] = flippedCards;
+            const isMatch = card1.dataset.symbol === card2.dataset.symbol;
+
+            if (isMatch) {
+                card1.classList.add('is-matched');
+                card2.classList.add('is-matched');
+                matchedPairs++;
+                flippedCards = [];
+                isLock = false;
+
+                if (matchedPairs === 8) {
+                    victory();
+                }
+            } else {
+                setTimeout(() => {
+                    card1.classList.remove('is-flipped');
+                    card2.classList.remove('is-flipped');
+                    flippedCards = [];
+                    isLock = false;
+                }, 1000);
+            }
+        }
+
+        function victory() {
+            stopTimer();
+            finalTimeEl.innerText = formatTime(timer);
+            finalMovesEl.innerText = moves;
+            winOverlay.classList.remove('hidden');
+
+            if (!bestTime || timer < parseInt(bestTime)) {
+                localStorage.setItem('memory_best_time', timer);
+                bestTime = timer;
+                bestTimeEl.innerText = formatTime(timer);
+            }
+        }
+
+        function initGame() {
+            stopTimer();
+            timer = 0;
+            moves = 0;
+            matchedPairs = 0;
+            flippedCards = [];
+            isLock = false;
+            timerEl.innerText = "00:00";
+            movesEl.innerText = "0";
+            winOverlay.classList.add('hidden');
+            createBoard();
+        }
+
+        document.getElementById('reset-btn').addEventListener('click', initGame);
+        document.getElementById('restart-btn').addEventListener('click', initGame);
+
+        initGame();
+    </script>
+</body>
+</html>

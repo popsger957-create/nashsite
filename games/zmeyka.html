@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Минималистичная Змейка</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            touch-action: none;
+            background-color: #f1f5f9;
+            color: #334155;
+            font-family: ui-sans-serif, system-ui, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            border: 2px solid #cbd5e1;
+            background-color: #ffffff;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        canvas {
+            display: block;
+            background-color: #ffffff;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .hidden { display: none !important; }
+
+        #score-display {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            pointer-events: none;
+            z-index: 5;
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="score-display">Счет: <span id="score-val">0</span></div>
+        
+        <div id="start-screen" class="overlay">
+            <h1 class="text-2xl font-bold mb-2 text-slate-800">ЗМЕЙКА</h1>
+            <p id="msg-title" class="text-sm text-slate-500 mb-6">Используй свайпы или стрелки</p>
+            <button id="start-btn" class="bg-slate-800 text-white px-12 py-3 rounded-full font-bold transition-transform active:scale-95">
+                СТАРТ
+            </button>
+        </div>
+        
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score-val');
+        const startScreen = document.getElementById('start-screen');
+        const startBtn = document.getElementById('start-btn');
+        const msgTitle = document.getElementById('msg-title');
+
+        const gridSize = 20;
+        let tileCountX, tileCountY;
+        
+        let snake = [];
+        let food = { x: 5, y: 5 };
+        let dx = 0, dy = 0;
+        let nextDx = 0, nextDy = 0;
+        let score = 0;
+        let gameActive = false;
+        let gameLoop;
+
+        // Расширенная инициализация под весь экран
+        function initCanvas() {
+            // Оставляем небольшие отступы (20px со всех сторон)
+            const margin = 40;
+            const availableWidth = window.innerWidth - margin;
+            const availableHeight = window.innerHeight - margin;
+            
+            // Размер холста должен быть кратен gridSize
+            canvas.width = Math.floor(availableWidth / gridSize) * gridSize;
+            canvas.height = Math.floor(availableHeight / gridSize) * gridSize;
+            
+            tileCountX = canvas.width / gridSize;
+            tileCountY = canvas.height / gridSize;
+        }
+
+        function resetGame() {
+            const startX = Math.floor(tileCountX / 2);
+            const startY = Math.floor(tileCountY / 2);
+            snake = [
+                { x: startX, y: startY },
+                { x: startX, y: startY + 1 },
+                { x: startX, y: startY + 2 }
+            ];
+            dx = 0; dy = -1;
+            nextDx = 0; nextDy = -1;
+            score = 0;
+            scoreEl.innerText = score;
+            placeFood();
+        }
+
+        function placeFood() {
+            food = {
+                x: Math.floor(Math.random() * tileCountX),
+                y: Math.floor(Math.random() * tileCountY)
+            };
+            // Проверка, чтобы еда не попала на змейку
+            for (let part of snake) {
+                if (part.x === food.x && part.y === food.y) {
+                    placeFood();
+                    break;
+                }
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Еда
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(food.x * gridSize + 2, food.y * gridSize + 2, gridSize - 4, gridSize - 4);
+
+            // Змейка
+            snake.forEach((part, index) => {
+                ctx.fillStyle = (index === 0) ? '#1e293b' : '#94a3b8';
+                ctx.fillRect(part.x * gridSize + 1, part.y * gridSize + 1, gridSize - 2, gridSize - 2);
+            });
+        }
+
+        function move() {
+            dx = nextDx; dy = nextDy;
+            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+
+            // Столкновение со стенами
+            if (head.x < 0 || head.x >= tileCountX || head.y < 0 || head.y >= tileCountY) {
+                return gameOver();
+            }
+
+            // Столкновение с телом
+            for (let part of snake) {
+                if (head.x === part.x && head.y === part.y) return gameOver();
+            }
+
+            snake.unshift(head);
+            if (head.x === food.x && head.y === food.y) {
+                score++;
+                scoreEl.innerText = score;
+                placeFood();
+            } else {
+                snake.pop();
+            }
+        }
+
+        function gameOver() {
+            gameActive = false;
+            clearInterval(gameLoop);
+            msgTitle.innerText = `Игра окончена! Твой счет: ${score}`;
+            startBtn.innerText = "ИГРАТЬ СНОВА";
+            startScreen.classList.remove('hidden');
+        }
+
+        function update() {
+            move();
+            if (gameActive) draw();
+        }
+
+        function changeDirection(newDx, newDy) {
+            // Запрет разворота на 180 градусов
+            if ((newDx === -dx && newDx !== 0) || (newDy === -dy && newDy !== 0)) return;
+            nextDx = newDx; nextDy = newDy;
+        }
+
+        // Управление клавиатурой
+        window.addEventListener('keydown', e => {
+            if (e.key === 'ArrowUp') changeDirection(0, -1);
+            if (e.key === 'ArrowDown') changeDirection(0, 1);
+            if (e.key === 'ArrowLeft') changeDirection(-1, 0);
+            if (e.key === 'ArrowRight') changeDirection(1, 0);
+        });
+
+        // Обработка свайпов
+        let touchStartX = 0;
+        let touchStartY = 0;
+        document.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }, {passive: false});
+
+        document.addEventListener('touchend', e => {
+            if (!gameActive) return;
+            const diffX = e.changedTouches[0].screenX - touchStartX;
+            const diffY = e.changedTouches[0].screenY - touchStartY;
+            
+            // Определяем, какое направление свайпа превалирует
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                if (Math.abs(diffX) > 20) changeDirection(diffX > 0 ? 1 : -1, 0);
+            } else {
+                if (Math.abs(diffY) > 20) changeDirection(0, diffY > 0 ? 1 : -1);
+            }
+        }, {passive: false});
+
+        // Предотвращение прокрутки страницы при свайпах
+        document.addEventListener('touchmove', e => {
+            if (gameActive) e.preventDefault();
+        }, {passive: false});
+
+        startBtn.onclick = () => {
+            startScreen.classList.add('hidden');
+            initCanvas();
+            resetGame();
+            gameActive = true;
+            if (gameLoop) clearInterval(gameLoop);
+            gameLoop = setInterval(update, 140);
+        };
+
+        // Адаптация при повороте экрана или ресайзе
+        window.addEventListener('resize', () => {
+            if (!gameActive) {
+                initCanvas();
+                draw();
+            }
+        });
+
+        initCanvas();
+        draw();
+    </script>
+</body>
+</html>

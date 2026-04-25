@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Space Shooter: Battle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            touch-action: none; /* Предотвращает системные жесты и скролл */
+            background-color: #f1f5f9;
+            color: #334155;
+            font-family: ui-sans-serif, system-ui, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 95vw;
+            max-width: 450px;
+            height: 85dvh; /* Динамическая высота для мобильных */
+            max-height: 600px;
+            background-color: #ffffff;
+            border: 4px solid #1e293b;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .ui-layer {
+            position: absolute;
+            top: 15px;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            backdrop-filter: blur(4px);
+        }
+
+        .btn {
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div class="ui-layer">
+            <div class="text-center">
+                <div class="text-slate-300 text-[10px] uppercase tracking-widest">Best</div>
+                <div class="text-slate-400 text-sm" id="best-score">0</div>
+            </div>
+            <div class="text-center">
+                <div class="text-slate-300 text-[10px] uppercase tracking-widest">Score</div>
+                <div class="text-2xl text-slate-800" id="current-score">0</div>
+            </div>
+        </div>
+
+        <canvas id="game-canvas"></canvas>
+
+        <div id="overlay">
+            <div class="mb-8 text-center px-4">
+                <div id="status-text" class="text-slate-400 text-xs uppercase tracking-[0.3em] mb-2">Space Battle</div>
+                <div class="text-6xl font-black text-slate-800" id="final-score">0</div>
+            </div>
+            <button id="start-btn" class="btn bg-slate-800 text-white px-12 py-5 rounded-full font-bold hover:bg-slate-700 active:scale-95 shadow-xl text-base uppercase tracking-widest">
+                В БОЙ
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('current-score');
+        const bestEl = document.getElementById('best-score');
+        const overlay = document.getElementById('overlay');
+        const startBtn = document.getElementById('start-btn');
+        const finalScoreEl = document.getElementById('final-score');
+        const statusText = document.getElementById('status-text');
+
+        let isRunning = false;
+        let score = 0;
+        let bestScore = localStorage.getItem('space_shooter_best') || 0;
+        bestEl.innerText = bestScore;
+
+        let player, bullets, enemyBullets, entities, particles, stars;
+        let keys = { left: false, right: false };
+        let frameCount = 0;
+
+        function resize() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function initStars() {
+            stars = [];
+            for(let i = 0; i < 40; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 2,
+                    speed: Math.random() * 1 + 0.5
+                });
+            }
+        }
+
+        function initGame() {
+            score = 0;
+            scoreEl.innerText = "0";
+            bullets = [];
+            enemyBullets = [];
+            entities = [];
+            particles = [];
+            frameCount = 0;
+            initStars();
+            
+            player = {
+                x: canvas.width / 2,
+                y: canvas.height - 60,
+                radius: 15,
+                speed: 7
+            };
+        }
+
+        function createEntity() {
+            const type = Math.random() > 0.4 ? 'asteroid' : 'enemy';
+            const size = type === 'asteroid' ? Math.random() * 25 + 15 : 30;
+            
+            const entity = {
+                type: type,
+                x: Math.random() * (canvas.width - size) + size/2,
+                y: -size,
+                size: size,
+                speed: Math.random() * 1.5 + (2 + score / 200),
+                hp: type === 'enemy' ? 1 : 2
+            };
+
+            if (type === 'asteroid') {
+                entity.points = [];
+                const steps = 8;
+                for(let i=0; i<steps; i++) {
+                    const angle = (i / steps) * Math.PI * 2;
+                    const r = entity.size/2 * (0.8 + Math.random() * 0.4);
+                    entity.points.push({ x: Math.cos(angle) * r, y: Math.sin(angle) * r });
+                }
+            }
+
+            entities.push(entity);
+        }
+
+        function createExplosion(x, y, color, count = 8) {
+            for(let i = 0; i < count; i++) {
+                particles.push({
+                    x: x, y: y,
+                    dx: (Math.random() - 0.5) * 8,
+                    dy: (Math.random() - 0.5) * 8,
+                    life: 1,
+                    size: Math.random() * 3 + 1,
+                    color: color
+                });
+            }
+        }
+
+        function drawShip(x, y, color, isEnemy = false) {
+            ctx.save();
+            ctx.translate(x, y);
+            if (isEnemy) ctx.rotate(Math.PI);
+            
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(0, -15);
+            ctx.lineTo(-15, 15);
+            ctx.lineTo(0, 8);
+            ctx.lineTo(15, 15);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.fillStyle = isEnemy ? "#fca5a5" : "#94a3b8";
+            ctx.beginPath();
+            ctx.arc(0, -2, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawAsteroid(entity) {
+            ctx.save();
+            ctx.translate(entity.x, entity.y);
+            ctx.strokeStyle = "#475569";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(entity.points[0].x, entity.points[0].y);
+            for(let i=1; i<entity.points.length; i++) {
+                ctx.lineTo(entity.points[i].x, entity.points[i].y);
+            }
+            ctx.closePath();
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function update() {
+            if (!isRunning) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Звезды
+            ctx.fillStyle = "#cbd5e1";
+            stars.forEach(s => {
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                ctx.fill();
+                s.y += s.speed;
+                if (s.y > canvas.height) s.y = -5;
+            });
+
+            // Движение игрока (клавиатура)
+            if (keys.left) player.x -= player.speed;
+            if (keys.right) player.x += player.speed;
+            player.x = Math.max(20, Math.min(canvas.width - 20, player.x));
+            drawShip(player.x, player.y, "#1e293b");
+
+            // Пули игрока
+            if (frameCount % 12 === 0) {
+                bullets.push({ x: player.x, y: player.y - 15, dy: -8 });
+            }
+
+            bullets.forEach((b, index) => {
+                b.y += b.dy;
+                ctx.fillStyle = "#1e293b";
+                ctx.fillRect(b.x - 1.5, b.y, 3, 10);
+                if (b.y < -20) bullets.splice(index, 1);
+            });
+
+            // Пули врагов
+            enemyBullets.forEach((eb, index) => {
+                eb.y += eb.dy;
+                ctx.fillStyle = "#ef4444";
+                ctx.fillRect(eb.x - 1.5, eb.y, 3, 8);
+                const dist = Math.hypot(eb.x - player.x, eb.y - player.y);
+                if (dist < 18) endGame();
+                if (eb.y > canvas.height + 20) enemyBullets.splice(index, 1);
+            });
+
+            // Сущности
+            if (frameCount % Math.max(15, 50 - Math.floor(score/15)) === 0) createEntity();
+
+            entities.forEach((ent, eIndex) => {
+                ent.y += ent.speed;
+                if (ent.type === 'enemy') {
+                    drawShip(ent.x, ent.y, "#ef4444", true);
+                    if (frameCount % 60 === 0 && Math.random() > 0.5) {
+                        enemyBullets.push({ x: ent.x, y: ent.y + 15, dy: 5 });
+                    }
+                } else {
+                    drawAsteroid(ent);
+                }
+
+                if (Math.hypot(ent.x - player.x, ent.y - player.y) < ent.size/2 + 10) endGame();
+
+                bullets.forEach((b, bIndex) => {
+                    if (Math.hypot(ent.x - b.x, ent.y - b.y) < ent.size/2 + 5) {
+                        createExplosion(ent.x, ent.y, ent.type === 'enemy' ? "#ef4444" : "#94a3b8");
+                        bullets.splice(bIndex, 1);
+                        entities.splice(eIndex, 1);
+                        score += ent.type === 'enemy' ? 20 : 10;
+                        scoreEl.innerText = score;
+                    }
+                });
+
+                if (ent.y > canvas.height + 50) entities.splice(eIndex, 1);
+            });
+
+            // Эффекты
+            particles.forEach((p, index) => {
+                p.x += p.dx; p.y += p.dy; p.life -= 0.03;
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+                ctx.globalAlpha = 1;
+                if (p.life <= 0) particles.splice(index, 1);
+            });
+
+            frameCount++;
+            requestAnimationFrame(update);
+        }
+
+        function endGame() {
+            isRunning = false;
+            statusText.innerText = "Mission Failed";
+            finalScoreEl.innerText = score;
+            overlay.style.display = 'flex';
+            createExplosion(player.x, player.y, "#1e293b", 20);
+            if (score > bestScore) {
+                bestScore = score;
+                localStorage.setItem('space_shooter_best', bestScore);
+                bestEl.innerText = bestScore;
+            }
+        }
+
+        function handleKey(e, isDown) {
+            if (e.key === "ArrowLeft" || e.key === "a" || e.key === "ф") keys.left = isDown;
+            if (e.key === "ArrowRight" || e.key === "d" || e.key === "в") keys.right = isDown;
+        }
+
+        function handlePointer(e) {
+            if (!isRunning) return;
+            const rect = canvas.getBoundingClientRect();
+            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            player.x = Math.max(20, Math.min(canvas.width - 20, clientX - rect.left));
+        }
+
+        window.addEventListener('keydown', (e) => handleKey(e, true));
+        window.addEventListener('keyup', (e) => handleKey(e, false));
+        window.addEventListener('mousemove', handlePointer);
+        window.addEventListener('touchstart', handlePointer);
+        window.addEventListener('touchmove', (e) => {
+            handlePointer(e);
+            e.preventDefault();
+        }, { passive: false });
+
+        startBtn.addEventListener('click', () => {
+            resize();
+            initGame();
+            overlay.style.display = 'none';
+            isRunning = true;
+            requestAnimationFrame(update);
+        });
+
+        initStars();
+    </script>
+</body>
+</html>

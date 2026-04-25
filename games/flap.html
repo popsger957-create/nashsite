@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Minimal Flappy Cube</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            touch-action: none;
+            background-color: #f1f5f9;
+            color: #334155;
+            font-family: ui-sans-serif, system-ui, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            user-select: none; /* Запрещаем выделение текста на мобильных */
+            -webkit-user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            height: 600px;
+            background-color: #ffffff;
+            border: 4px solid #1e293b;
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .score-board {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            font-family: ui-monospace, monospace;
+            font-weight: 800;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        #game-over {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 30;
+            backdrop-filter: blur(8px);
+        }
+
+        #player {
+            position: absolute;
+            left: 50px;
+            width: 34px;
+            height: 34px;
+            background-color: #1e293b;
+            border-radius: 6px;
+            will-change: transform;
+        }
+
+        .pipe {
+            position: absolute;
+            width: 50px;
+            background-color: #ef4444;
+            border-radius: 4px;
+        }
+
+        #restart-btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            -webkit-tap-highlight-color: transparent; /* Убираем синюю подсветку тапа */
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div class="score-board">
+            <div class="text-slate-300 text-[10px] uppercase tracking-widest">Best: <span id="best-score">0</span></div>
+            <div class="text-4xl text-slate-800 leading-none mt-1" id="current-score">0</div>
+        </div>
+
+        <div id="player"></div>
+
+        <div id="game-over">
+            <div class="mb-8 text-center px-4">
+                <div class="text-slate-300 text-xs uppercase tracking-[0.3em] mb-2">Final Score</div>
+                <div class="text-6xl font-black text-slate-800" id="final-score-display">0</div>
+            </div>
+            <button id="restart-btn" class="bg-slate-800 text-white px-14 py-5 rounded-full font-bold hover:bg-slate-700 active:scale-90 shadow-2xl text-base uppercase tracking-widest">
+                Начать
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const container = document.getElementById('game-container');
+        const player = document.getElementById('player');
+        const scoreEl = document.getElementById('current-score');
+        const bestEl = document.getElementById('best-score');
+        const gameOverEl = document.getElementById('game-over');
+        const restartBtn = document.getElementById('restart-btn');
+        const finalScoreDisplay = document.getElementById('final-score-display');
+
+        let isGameOver = true;
+        let score = 0;
+        let bestScore = localStorage.getItem('flappy_best') || 0;
+        
+        let posY = 250;
+        let velocity = 0;
+        let gravity = 0.25;
+        let lift = -6;
+        let rotation = 0;
+        
+        let pipes = [];
+        let pipeSpeed = 2.5;
+        let pipeInterval = 1500;
+        let lastPipeTime = 0;
+        let animationFrame;
+
+        bestEl.innerText = bestScore;
+
+        function handleInput(e) {
+            // Если игра окончена, прыжок не работает (ждем нажатия кнопки "Начать")
+            if (isGameOver) return;
+            
+            if (e.target === restartBtn) return;
+            if (e.code === 'Space') e.preventDefault();
+            
+            flap();
+        }
+
+        function flap() {
+            velocity = lift;
+        }
+
+        function startGame() {
+            isGameOver = false;
+            score = 0;
+            posY = 250;
+            velocity = 0;
+            rotation = 0;
+            pipes = [];
+            pipeSpeed = 2.5;
+            
+            scoreEl.innerText = "0";
+            gameOverEl.style.display = 'none';
+            
+            document.querySelectorAll('.pipe').forEach(p => p.remove());
+
+            cancelAnimationFrame(animationFrame);
+            lastPipeTime = performance.now();
+            requestAnimationFrame(update);
+        }
+
+        function createPipe() {
+            const gap = 170; // Немного увеличили зазор для удобства на телефоне
+            const minPipeHeight = 50;
+            const maxPipeHeight = container.offsetHeight - gap - minPipeHeight;
+            const topHeight = Math.floor(Math.random() * (maxPipeHeight - minPipeHeight)) + minPipeHeight;
+            
+            const pipeTop = document.createElement('div');
+            pipeTop.classList.add('pipe');
+            pipeTop.style.height = topHeight + 'px';
+            pipeTop.style.top = '0px';
+            pipeTop.style.left = container.offsetWidth + 'px';
+            
+            const pipeBottom = document.createElement('div');
+            pipeBottom.classList.add('pipe');
+            pipeBottom.style.height = (container.offsetHeight - topHeight - gap) + 'px';
+            pipeBottom.style.bottom = '0px';
+            pipeBottom.style.left = container.offsetWidth + 'px';
+            
+            container.appendChild(pipeTop);
+            container.appendChild(pipeBottom);
+            
+            pipes.push({
+                top: pipeTop,
+                bottom: pipeBottom,
+                x: container.offsetWidth,
+                passed: false
+            });
+        }
+
+        function update(time) {
+            if (isGameOver) return;
+
+            velocity += gravity;
+            posY += velocity;
+            
+            rotation = Math.min(Math.max(velocity * 4, -20), 90);
+
+            if (posY + 34 > container.offsetHeight || posY < 0) {
+                endGame();
+            }
+
+            player.style.top = posY + 'px';
+            player.style.transform = `rotate(${rotation}deg)`;
+
+            if (time - lastPipeTime > pipeInterval) {
+                createPipe();
+                lastPipeTime = time;
+                if (pipeSpeed < 5) pipeSpeed += 0.05;
+            }
+
+            for (let i = pipes.length - 1; i >= 0; i--) {
+                const p = pipes[i];
+                p.x -= pipeSpeed;
+                p.top.style.left = p.x + 'px';
+                p.bottom.style.left = p.x + 'px';
+
+                if (!p.passed && p.x < 50) {
+                    p.passed = true;
+                    score++;
+                    scoreEl.innerText = score;
+                }
+
+                if (p.x < 84 && p.x + 50 > 50) {
+                    const topHeight = parseInt(p.top.style.height);
+                    const bottomY = container.offsetHeight - parseInt(p.bottom.style.height);
+                    
+                    if (posY < topHeight || posY + 34 > bottomY) {
+                        endGame();
+                    }
+                }
+
+                if (p.x < -60) {
+                    p.top.remove();
+                    p.bottom.remove();
+                    pipes.splice(i, 1);
+                }
+            }
+
+            animationFrame = requestAnimationFrame(update);
+        }
+
+        function endGame() {
+            isGameOver = true;
+            cancelAnimationFrame(animationFrame);
+            
+            finalScoreDisplay.innerText = score;
+            gameOverEl.style.display = 'flex';
+
+            if (score > bestScore) {
+                bestScore = score;
+                localStorage.setItem('flappy_best', bestScore);
+                bestEl.innerText = bestScore;
+            }
+        }
+
+        // События управления
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') handleInput(e);
+        });
+        
+        container.addEventListener('mousedown', handleInput);
+        
+        container.addEventListener('touchstart', (e) => {
+            if (!isGameOver) {
+                e.preventDefault(); // Блокируем зум и скролл только во время игры
+                handleInput(e);
+            }
+        }, { passive: false });
+
+        restartBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            startGame();
+        });
+
+        // Инициализация стартового экрана
+        gameOverEl.style.display = 'flex';
+        finalScoreDisplay.innerText = "0";
+    </script>
+</body>
+</html>

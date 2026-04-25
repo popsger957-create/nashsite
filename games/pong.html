@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Минималистичный Понг</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            touch-action: none;
+            background-color: #f1f5f9;
+            color: #334155;
+            font-family: ui-sans-serif, system-ui, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            border: 2px solid #cbd5e1;
+            background-color: #ffffff;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        canvas {
+            display: block;
+            background-color: #ffffff;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .hidden { display: none !important; }
+
+        #score-display {
+            position: absolute;
+            top: 15px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-around;
+            pointer-events: none;
+            z-index: 5;
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 1.5rem;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="score-display">
+            <span id="player-score">0</span>
+            <span id="bot-score">0</span>
+        </div>
+        
+        <div id="start-screen" class="overlay">
+            <h1 class="text-2xl font-bold mb-2 text-slate-800 uppercase tracking-widest">Понг</h1>
+            <p id="msg-title" class="text-sm text-slate-500 mb-6 text-center">
+                Управляй ракеткой слева.<br>
+                Стрелки (плавно) или мышь/тач (точно).
+            </p>
+            <button id="start-btn" class="bg-slate-800 text-white px-12 py-3 rounded-full font-bold transition-transform active:scale-95">
+                СТАРТ
+            </button>
+        </div>
+        
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const playerLevelEl = document.getElementById('player-score');
+        const botLevelEl = document.getElementById('bot-score');
+        const startScreen = document.getElementById('start-screen');
+        const startBtn = document.getElementById('start-btn');
+        const msgTitle = document.getElementById('msg-title');
+
+        // Настройки игры
+        let gameActive = false;
+        let gameLoop;
+        
+        const paddleWidth = 10;
+        let paddleHeight = 80;
+        const ballSize = 10;
+
+        // Состояние игрока
+        // targetY используется для плавности при вводе с клавиатуры
+        let player = { x: 10, y: 0, score: 0, targetY: 0 };
+        let bot = { x: 0, y: 0, score: 0 };
+        let ball = { x: 0, y: 0, dx: 0, dy: 0, speed: 4 };
+
+        const keys = {};
+        let lastInputType = 'mouse'; // 'mouse' или 'keyboard'
+
+        function initCanvas() {
+            const margin = 40;
+            const availableWidth = window.innerWidth - margin;
+            const availableHeight = window.innerHeight - margin;
+            
+            canvas.width = Math.min(availableWidth, 600);
+            canvas.height = Math.min(availableHeight, 400);
+
+            player.y = canvas.height / 2 - paddleHeight / 2;
+            player.targetY = player.y;
+            bot.x = canvas.width - paddleWidth - 10;
+            bot.y = canvas.height / 2 - paddleHeight / 2;
+            
+            resetBall();
+        }
+
+        function resetBall() {
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            ball.speed = 4;
+            const dir = Math.random() > 0.5 ? 1 : -1;
+            ball.dx = dir * ball.speed;
+            ball.dy = (Math.random() * 2 - 1) * ball.speed;
+        }
+
+        function draw() {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Разделительная линия
+            ctx.setLineDash([5, 15]);
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2, 0);
+            ctx.lineTo(canvas.width / 2, canvas.height);
+            ctx.strokeStyle = '#f1f5f9';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Ракетка игрока
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(player.x, player.y, paddleWidth, paddleHeight);
+
+            // Ракетка бота
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillRect(bot.x, bot.y, paddleWidth, paddleHeight);
+
+            // Мяч
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(ball.x - ballSize/2, ball.y - ballSize/2, ballSize, ballSize);
+        }
+
+        function move() {
+            // Если используются стрелки клавиатуры
+            if (keys['ArrowUp'] || keys['ArrowDown']) {
+                lastInputType = 'keyboard';
+                const keyboardSpeed = 12;
+                if (keys['ArrowUp']) player.targetY -= keyboardSpeed;
+                if (keys['ArrowDown']) player.targetY += keyboardSpeed;
+            }
+
+            // Ограничение цели
+            player.targetY = Math.max(0, Math.min(canvas.height - paddleHeight, player.targetY));
+
+            // Плавное движение для клавиатуры и мгновенное для мыши/тача
+            if (lastInputType === 'keyboard') {
+                // Плавное следование за целью (LERP)
+                player.y += (player.targetY - player.y) * 0.15;
+            } else {
+                // Почти мгновенная реакция на мышь/тач (очень высокий коэффициент)
+                player.y += (player.targetY - player.y) * 0.8;
+            }
+
+            // Движение мяча
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            // Отскок от стен
+            if (ball.y <= 0 || ball.y >= canvas.height) {
+                ball.dy *= -1;
+            }
+
+            // ИИ Бота
+            const botCenter = bot.y + paddleHeight / 2;
+            const botSpeed = 3.8;
+            if (botCenter < ball.y - 10) bot.y += botSpeed;
+            else if (botCenter > ball.y + 10) bot.y -= botSpeed;
+
+            bot.y = Math.max(0, Math.min(canvas.height - paddleHeight, bot.y));
+
+            // Коллизии: Игрок
+            if (ball.dx < 0 && 
+                ball.x <= player.x + paddleWidth && 
+                ball.x > player.x &&
+                ball.y > player.y && ball.y < player.y + paddleHeight) {
+                
+                ball.dx = Math.abs(ball.dx) + 0.4;
+                ball.speed += 0.4;
+                let impact = (ball.y - (player.y + paddleHeight / 2)) / (paddleHeight / 2);
+                ball.dy = impact * ball.speed;
+                ball.x = player.x + paddleWidth + 1; 
+            }
+
+            // Коллизии: Бот
+            if (ball.dx > 0 && 
+                ball.x >= bot.x - ballSize/2 && 
+                ball.x < bot.x + paddleWidth &&
+                ball.y > bot.y && ball.y < bot.y + paddleHeight) {
+                
+                ball.dx = -Math.abs(ball.dx) - 0.4;
+                ball.speed += 0.4;
+                let impact = (ball.y - (bot.y + paddleHeight / 2)) / (paddleHeight / 2);
+                ball.dy = impact * ball.speed;
+                ball.x = bot.x - ballSize/2 - 1;
+            }
+
+            // Счет
+            if (ball.x < 0) {
+                bot.score++;
+                updateScore();
+                resetBall();
+            } else if (ball.x > canvas.width) {
+                player.score++;
+                updateScore();
+                resetBall();
+            }
+        }
+
+        function updateScore() {
+            playerLevelEl.innerText = player.score;
+            botLevelEl.innerText = bot.score;
+            if (player.score >= 5 || bot.score >= 5) gameOver();
+        }
+
+        function gameOver() {
+            gameActive = false;
+            clearInterval(gameLoop);
+            msgTitle.innerText = player.score >= 5 ? "Победа!" : "Бот выиграл";
+            startBtn.innerText = "ИГРАТЬ СНОВА";
+            startScreen.classList.remove('hidden');
+        }
+
+        function update() {
+            move();
+            draw();
+        }
+
+        // Обработчики событий
+        window.addEventListener('keydown', e => {
+            keys[e.key] = true;
+        });
+        window.addEventListener('keyup', e => {
+            keys[e.key] = false;
+        });
+
+        canvas.addEventListener('mousemove', e => {
+            if (!gameActive) return;
+            lastInputType = 'mouse';
+            const rect = canvas.getBoundingClientRect();
+            player.targetY = (e.clientY - rect.top) - paddleHeight / 2;
+        });
+
+        canvas.addEventListener('touchmove', e => {
+            if (!gameActive) return;
+            lastInputType = 'mouse'; // Используем ту же логику быстрого отклика
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            player.targetY = (e.touches[0].clientY - rect.top) - paddleHeight / 2;
+        }, {passive: false});
+
+        startBtn.onclick = () => {
+            player.score = 0;
+            bot.score = 0;
+            updateScore();
+            startScreen.classList.add('hidden');
+            initCanvas();
+            gameActive = true;
+            if (gameLoop) clearInterval(gameLoop);
+            gameLoop = setInterval(update, 1000 / 60);
+        };
+
+        window.addEventListener('resize', () => {
+            if (!gameActive) initCanvas();
+        });
+
+        initCanvas();
+        draw();
+    </script>
+</body>
+</html>

@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Voxel World - Mouse Controls</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #f1f5f9;
+            font-family: ui-sans-serif, system-ui, sans-serif;
+            touch-action: none;
+            user-select: none;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+        }
+
+        #crosshair {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 20px; height: 20px;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 20;
+        }
+        #crosshair::before, #crosshair::after {
+            content: ''; position: absolute; background: rgba(30, 41, 59, 0.8);
+            border-radius: 2px;
+        }
+        #crosshair::before { top: 9px; left: 0; width: 20px; height: 2px; }
+        #crosshair::after { top: 0; left: 9px; width: 2px; height: 20px; }
+
+        #blocker {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+        }
+
+        .menu-card {
+            background: white;
+            padding: 40px;
+            border-radius: 32px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 90%;
+            max-width: 440px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .ui-layer {
+            position: absolute;
+            bottom: 30px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .toolbar {
+            pointer-events: auto;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid #e2e8f0;
+            border-radius: 24px;
+            padding: 12px 24px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .color-btn {
+            width: 44px; height: 44px; border-radius: 50%;
+            cursor: pointer; transition: all 0.2s;
+            border: 3px solid transparent;
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+        }
+        .color-btn.active { border-color: #1e293b; transform: scale(1.15); box-shadow: 0 0 15px rgba(0,0,0,0.1); }
+        
+        .color-btn .key-hint {
+            position: absolute; bottom: -20px; font-size: 11px; font-weight: 800; color: #64748b;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 20px; width: 20px; background: #1e293b; border-radius: 50%; margin-top: -6px; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+    <div id="crosshair"></div>
+
+    <div id="blocker">
+        <div class="menu-card">
+            <h1 class="text-3xl font-black text-slate-800 tracking-tight uppercase mb-2">Voxel Builder</h1>
+            <p class="text-sm text-slate-500 uppercase tracking-widest font-bold mb-8 text-center">Обновленное управление</p>
+            
+            <div class="flex flex-col gap-6 mb-8 text-left">
+                <div>
+                    <div class="flex justify-between mb-1">
+                        <label class="text-xs font-bold text-slate-600 uppercase tracking-wide">Угол обзора (FOV)</label>
+                        <span id="fov-val" class="text-xs font-mono text-slate-800 font-bold">85</span>
+                    </div>
+                    <input type="range" id="fov-slider" min="60" max="120" value="85" class="cursor-pointer">
+                </div>
+
+                <div>
+                    <div class="flex justify-between mb-1">
+                        <label class="text-xs font-bold text-slate-600 uppercase tracking-wide">Чувствительность</label>
+                        <span id="sens-val" class="text-xs font-mono text-slate-800 font-bold">2.0</span>
+                    </div>
+                    <input type="range" id="sens-slider" min="5" max="50" value="20" class="cursor-pointer">
+                </div>
+            </div>
+
+            <button id="play-btn" class="w-full py-4 bg-slate-800 hover:bg-slate-900 text-white rounded-2xl font-bold uppercase tracking-widest transition-all shadow-lg active:scale-95">
+                Начать игру
+            </button>
+            
+            <div class="mt-8 space-y-2 text-left bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <p class="text-[11px] text-slate-600 font-bold uppercase tracking-wider"><span class="text-indigo-600">ЛКМ:</span> Сломать блок</p>
+                <p class="text-[11px] text-slate-600 font-bold uppercase tracking-wider"><span class="text-indigo-600">ПКМ:</span> Поставить блок</p>
+                <p class="text-[11px] text-slate-600 font-bold uppercase tracking-wider"><span class="text-indigo-600">WASD + Space:</span> Движение и прыжок</p>
+                <p class="text-[11px] text-slate-600 font-bold uppercase tracking-wider"><span class="text-indigo-600">1-4:</span> Выбор цвета</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="ui-layer">
+        <div class="toolbar" id="color-toolbar">
+            <div class="color-btn active" id="c1" style="background-color: #1e293b;" onclick="setColor('#1e293b', 'c1')">
+                <span class="key-hint">1</span>
+            </div>
+            <div class="color-btn" id="c2" style="background-color: #ef4444;" onclick="setColor('#ef4444', 'c2')">
+                <span class="key-hint">2</span>
+            </div>
+            <div class="color-btn" id="c3" style="background-color: #10b981;" onclick="setColor('#10b981', 'c3')">
+                <span class="key-hint">3</span>
+            </div>
+            <div class="color-btn" id="c4" style="background-color: #3b82f6;" onclick="setColor('#3b82f6', 'c4')">
+                <span class="key-hint">4</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let camera, scene, renderer, raycaster;
+        let rollOverMesh, cubeGeo, plane;
+        const objects = [];
+        const centerPoint = new THREE.Vector2(0, 0);
+
+        let yawObject = new THREE.Object3D();
+        let pitchObject = new THREE.Object3D();
+        
+        let keys = { w: false, a: false, s: false, d: false };
+        let canJump = false, velocity = new THREE.Vector3();
+        let prevTime = performance.now();
+
+        let currentColor = 0x1e293b;
+        let sensitivity = 0.002;
+
+        const PLAYER_RADIUS = 18; 
+        const PLAYER_HEIGHT = 80; 
+
+        window.onload = function() {
+            init();
+            animate();
+            setupMenu();
+        };
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf1f5f9);
+            scene.fog = new THREE.Fog(0xf1f5f9, 200, 2000);
+
+            camera = new THREE.PerspectiveCamera(85, window.innerWidth / window.innerHeight, 1, 10000);
+            pitchObject.add(camera);
+            yawObject.add(pitchObject);
+            yawObject.position.set(0, 100, 0);
+            scene.add(yawObject);
+
+            // Сетка
+            const grid = new THREE.GridHelper(2000, 40, 0xcbd5e1, 0xe2e8f0);
+            scene.add(grid);
+
+            // Геометрия
+            cubeGeo = new THREE.BoxGeometry(50, 50, 50);
+            
+            // Превью блока
+            rollOverMesh = new THREE.Mesh(
+                cubeGeo,
+                new THREE.MeshBasicMaterial({ color: 0x1e293b, opacity: 0.4, transparent: true })
+            );
+            scene.add(rollOverMesh);
+
+            // Пол для рейкаста
+            plane = new THREE.Mesh(
+                new THREE.PlaneGeometry(5000, 5000),
+                new THREE.MeshBasicMaterial({ visible: false })
+            );
+            plane.rotateX(-Math.PI / 2);
+            scene.add(plane);
+            objects.push(plane);
+
+            raycaster = new THREE.Raycaster();
+            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+            const sun = new THREE.DirectionalLight(0xffffff, 0.5);
+            sun.position.set(1, 1, 0.5).normalize();
+            scene.add(sun);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+
+            window.addEventListener('resize', onWindowResize);
+            
+            // Запрет контекстного меню для правой кнопки мыши
+            window.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            setupDesktopControls();
+            loadBuild();
+        }
+
+        function setupMenu() {
+            const blocker = document.getElementById('blocker');
+            const playBtn = document.getElementById('play-btn');
+            const fovSlider = document.getElementById('fov-slider');
+            const fovVal = document.getElementById('fov-val');
+            const sensSlider = document.getElementById('sens-slider');
+            const sensVal = document.getElementById('sens-val');
+
+            playBtn.onclick = () => document.body.requestPointerLock();
+
+            fovSlider.oninput = (e) => {
+                fovVal.innerText = e.target.value;
+                camera.fov = parseInt(e.target.value);
+                camera.updateProjectionMatrix();
+            };
+
+            sensSlider.oninput = (e) => {
+                sensVal.innerText = (e.target.value / 10).toFixed(1);
+                sensitivity = e.target.value * 0.0001;
+            };
+
+            document.addEventListener('pointerlockchange', () => {
+                if (document.pointerLockElement !== document.body) {
+                    blocker.style.display = 'flex';
+                    Object.keys(keys).forEach(k => keys[k] = false);
+                } else {
+                    blocker.style.display = 'none';
+                }
+            });
+        }
+
+        function setupDesktopControls() {
+            document.addEventListener('mousemove', (e) => {
+                if (document.pointerLockElement === document.body) {
+                    yawObject.rotation.y -= e.movementX * sensitivity;
+                    pitchObject.rotation.x -= e.movementY * sensitivity;
+                    pitchObject.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitchObject.rotation.x));
+                }
+            });
+
+            document.addEventListener('mousedown', (e) => {
+                if (document.pointerLockElement !== document.body) return;
+                
+                if (e.button === 0) { // ЛКМ - Ломать
+                    handleInteraction('break');
+                } else if (e.button === 2) { // ПКМ - Ставить
+                    handleInteraction('build');
+                }
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (document.pointerLockElement !== document.body) return;
+                switch (e.code) {
+                    case 'KeyW': keys.w = true; break;
+                    case 'KeyS': keys.s = true; break;
+                    case 'KeyA': keys.a = true; break;
+                    case 'KeyD': keys.d = true; break;
+                    case 'Space': 
+                        if (canJump) { 
+                            velocity.y = 350; 
+                            canJump = false; 
+                        } 
+                        break;
+                    case 'Digit1': setColor('#1e293b', 'c1'); break;
+                    case 'Digit2': setColor('#ef4444', 'c2'); break;
+                    case 'Digit3': setColor('#10b981', 'c3'); break;
+                    case 'Digit4': setColor('#3b82f6', 'c4'); break;
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                switch (e.code) {
+                    case 'KeyW': keys.w = false; break;
+                    case 'KeyS': keys.s = false; break;
+                    case 'KeyA': keys.a = false; break;
+                    case 'KeyD': keys.d = false; break;
+                }
+            });
+        }
+
+        function handleInteraction(mode) {
+            raycaster.setFromCamera(centerPoint, camera);
+            const intersects = raycaster.intersectObjects(objects, false);
+            
+            if (intersects.length > 0) {
+                const intersect = intersects[0];
+                if (intersect.distance > 600) return;
+
+                if (mode === 'break') {
+                    if (intersect.object !== plane) {
+                        scene.remove(intersect.object);
+                        objects.splice(objects.indexOf(intersect.object), 1);
+                        saveBuild();
+                    }
+                } else if (mode === 'build') {
+                    const voxel = new THREE.Mesh(cubeGeo, new THREE.MeshLambertMaterial({ color: currentColor }));
+                    voxel.position.copy(intersect.point).add(intersect.face.normal);
+                    voxel.position.divideScalar(50).floor().multiplyScalar(50).addScalar(25);
+                    
+                    // Проверка, не ставим ли мы блок в себя
+                    const box = new THREE.Box3().setFromObject(voxel);
+                    const playerBox = getPlayerBox(yawObject.position);
+                    if (box.intersectsBox(playerBox)) return;
+                    
+                    scene.add(voxel);
+                    objects.push(voxel);
+                    saveBuild();
+                }
+            }
+        }
+
+        function getPlayerBox(pos) {
+            const margin = 0.5;
+            return new THREE.Box3().setFromCenterAndSize(
+                pos.clone().sub(new THREE.Vector3(0, PLAYER_HEIGHT/2, 0)),
+                new THREE.Vector3(PLAYER_RADIUS * 2 - margin, PLAYER_HEIGHT - margin, PLAYER_RADIUS * 2 - margin)
+            );
+        }
+
+        function checkCollision(pos) {
+            const playerBox = getPlayerBox(pos);
+            for (let i = 0; i < objects.length; i++) {
+                if (objects[i] === plane) continue;
+                const blockBox = new THREE.Box3().setFromObject(objects[i]);
+                if (playerBox.intersectsBox(blockBox)) return true;
+            }
+            return false;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = performance.now();
+            const delta = Math.min((time - prevTime) / 1000, 0.05);
+
+            velocity.x -= velocity.x * 10.0 * delta;
+            velocity.z -= velocity.z * 10.0 * delta;
+            velocity.y -= 9.8 * 100.0 * delta;
+
+            const dirX = Number(keys.d) - Number(keys.a);
+            const dirZ = Number(keys.w) - Number(keys.s);
+
+            if (dirX !== 0 || dirZ !== 0) {
+                const moveVector = new THREE.Vector3(dirX, 0, -dirZ);
+                moveVector.applyQuaternion(yawObject.quaternion);
+                moveVector.y = 0;
+                moveVector.normalize();
+                velocity.x += moveVector.x * 4000.0 * delta;
+                velocity.z += moveVector.z * 4000.0 * delta;
+            }
+
+            // Коллизии
+            let nextX = yawObject.position.x + velocity.x * delta;
+            let nextZ = yawObject.position.z + velocity.z * delta;
+            let nextY = yawObject.position.y + velocity.y * delta;
+
+            let testPos = yawObject.position.clone();
+            testPos.x = nextX;
+            if (!checkCollision(testPos)) { yawObject.position.x = nextX; } else { velocity.x = 0; }
+
+            testPos = yawObject.position.clone();
+            testPos.z = nextZ;
+            if (!checkCollision(testPos)) { yawObject.position.z = nextZ; } else { velocity.z = 0; }
+
+            yawObject.position.y = nextY;
+            
+            // Пол и блоки
+            let currentFloor = 80;
+            const px = yawObject.position.x;
+            const pz = yawObject.position.z;
+            const py_bottom = yawObject.position.y - PLAYER_HEIGHT;
+
+            for (let i = 0; i < objects.length; i++) {
+                if (objects[i] === plane) continue;
+                const obj = objects[i];
+                if (Math.abs(obj.position.x - px) < 43 && Math.abs(obj.position.z - pz) < 43) {
+                    if (py_bottom < obj.position.y + 25 && py_bottom > obj.position.y - 50) {
+                        currentFloor = Math.max(currentFloor, obj.position.y + 25 + PLAYER_HEIGHT);
+                    }
+                }
+            }
+
+            if (yawObject.position.y <= currentFloor) {
+                velocity.y = 0;
+                yawObject.position.y = currentFloor;
+                canJump = true;
+            } else {
+                canJump = false;
+            }
+
+            // Система превью (RollOver)
+            if (document.pointerLockElement === document.body) {
+                raycaster.setFromCamera(centerPoint, camera);
+                const intersects = raycaster.intersectObjects(objects, false);
+                
+                if (intersects.length > 0 && intersects[0].distance < 600) {
+                    rollOverMesh.visible = true;
+                    const intersect = intersects[0];
+                    
+                    // Если наводимся на существующий блок — подсвечиваем его красным (как цель для слома)
+                    if (intersect.object !== plane) {
+                        rollOverMesh.position.copy(intersect.object.position);
+                        rollOverMesh.material.color.setHex(0xff4444);
+                        rollOverMesh.material.opacity = 0.3;
+                    } else {
+                        // Если на пустую сетку — показываем, куда встанет блок
+                        rollOverMesh.position.copy(intersect.point).add(intersect.face.normal);
+                        rollOverMesh.position.divideScalar(50).floor().multiplyScalar(50).addScalar(25);
+                        rollOverMesh.material.color.setHex(currentColor);
+                        rollOverMesh.material.opacity = 0.5;
+                    }
+                } else {
+                    rollOverMesh.visible = false;
+                }
+            } else {
+                rollOverMesh.visible = false;
+            }
+
+            prevTime = time;
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        window.setColor = function(c, id) {
+            currentColor = parseInt(c.replace('#', '0x'));
+            document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        };
+
+        function saveBuild() {
+            const data = objects.filter(o => o !== plane).map(o => ({
+                x: o.position.x, y: o.position.y, z: o.position.z, c: o.material.color.getHex()
+            }));
+            localStorage.setItem('voxel_mouse_save', JSON.stringify(data));
+        }
+
+        function loadBuild() {
+            const saved = localStorage.getItem('voxel_mouse_save');
+            if (saved) {
+                try {
+                    JSON.parse(saved).forEach(d => {
+                        const v = new THREE.Mesh(cubeGeo, new THREE.MeshLambertMaterial({ color: d.c }));
+                        v.position.set(d.x, d.y, d.z);
+                        scene.add(v); objects.push(v);
+                    });
+                } catch(e) {}
+            }
+        }
+    </script>
+</body>
+</html>
