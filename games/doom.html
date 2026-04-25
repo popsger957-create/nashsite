@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doom JS: Ultimate Edition</title>
+    <style>
+        * { box-sizing: border-box; }
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: #000; color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden; user-select: none;
+        }
+
+        #game-container {
+            width: 100vw; height: 100vh; position: relative;
+        }
+
+        canvas {
+            width: 100%; height: 100%; display: block;
+            image-rendering: pixelated; /* Ретро-пиксели */
+        }
+
+        /* Эффект старого ЭЛТ-монитора (scanlines) */
+        #crt-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none; z-index: 80; opacity: 0.6;
+        }
+
+        #overlay, #game-over {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 100; text-align: center; cursor: pointer;
+        }
+        
+        #game-over { display: none; background: rgba(100,0,0,0.9); }
+
+        h1 { color: #f00; font-size: 5vw; margin: 0; text-shadow: 4px 4px #400; text-transform: uppercase; }
+        p { font-size: 1.5vw; margin: 20px 0; color: #ccc; }
+        .blink { animation: blinker 1s linear infinite; color: #ff0; }
+        @keyframes blinker { 50% { opacity: 0; } }
+
+        #ui-layer {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 12vh;
+            background: #111; border-top: 4px solid #444; border-bottom: 4px solid #000;
+            display: flex; justify-content: space-around; align-items: center;
+            pointer-events: none; z-index: 90;
+            box-shadow: inset 0 10px 20px rgba(0,0,0,0.8);
+        }
+
+        .stat-box { text-align: center; min-width: 15vw; background: #000; padding: 1vh; border: 2px solid #333; border-radius: 5px; }
+        .stat-label { font-size: 1.2vh; color: #888; text-transform: uppercase; letter-spacing: 2px; }
+        .stat-value { font-size: 5vh; font-weight: bold; color: #f00; text-shadow: 2px 2px #300; }
+
+        #face {
+            width: 8vh; height: 10vh; background-color: #333; border: 3px solid #555;
+            display: flex; align-items: center; justify-content: center; font-size: 6vh;
+            box-shadow: inset 0 0 10px #000; border-radius: 5px;
+        }
+
+        #crosshair {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 20px; height: 20px; pointer-events: none; z-index: 40;
+        }
+        #crosshair::before { content: ''; position: absolute; top: 9px; left: -5px; width: 30px; height: 2px; background: rgba(0,255,0,0.8); }
+        #crosshair::after { content: ''; position: absolute; left: 9px; top: -5px; width: 2px; height: 30px; background: rgba(0,255,0,0.8); }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="overlay">
+            <h1>DOOM ETERNAL JS</h1>
+            <p>БАГИ ИСПРАВЛЕНЫ. ДОБАВЛЕНЫ ЗВУКИ И ОСВЕЩЕНИЕ.</p>
+            <small class="blink">>> КЛИКНИ, ЧТОБЫ НАЧАТЬ <<</small>
+        </div>
+        
+        <div id="game-over">
+            <h1>ВЫ ПОГИБЛИ</h1>
+            <p>Ваша душа поглощена лабиринтом.</p>
+            <small class="blink">>> КЛИКНИ, ЧТОБЫ ПЕРЕЗАПУСТИТЬ <<</small>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+        <div id="crt-overlay"></div>
+        <div id="crosshair"></div>
+        
+        <div id="ui-layer">
+            <div class="stat-box">
+                <div class="stat-label">ЗДОРОВЬЕ</div>
+                <div id="hp-val" class="stat-value">100</div>
+            </div>
+            <div id="face">😐</div>
+            <div class="stat-box">
+                <div class="stat-label">ПАТРОНЫ</div>
+                <div id="ammo-val" class="stat-value">25</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const overlay = document.getElementById('overlay');
+        const gameOverScreen = document.getElementById('game-over');
+        const hpDisplay = document.getElementById('hp-val');
+        const ammoDisplay = document.getElementById('ammo-val');
+        const faceDisplay = document.getElementById('face');
+
+        // --- Аудио движок (Синтезатор звуков) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            if (!audioCtx) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            if (type === 'shoot') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+            } else if (type === 'pickup') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(900, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'hit') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(80, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+            }
+        }
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // 1=Красная стена, 2=Синяя стена, 3=Металл/Желтая
+        const worldMap = [
+            [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+            [2,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,2],
+            [2,0,0,1,1,1,0,0,0,2,0,3,3,3,3,3,0,0,0,2],
+            [2,0,0,1,0,1,0,0,0,0,0,0,0,0,0,3,0,0,0,2],
+            [2,0,0,1,0,1,0,0,0,2,0,3,0,0,0,3,0,0,0,2],
+            [2,0,0,0,0,0,0,0,0,2,0,3,0,0,0,3,0,0,0,2],
+            [2,2,2,0,0,2,2,2,2,2,0,3,3,0,3,3,0,0,0,2],
+            [1,1,1,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,0,0,0,0,0,1,0,0,0,0,1,1,1,0,0,0,0,1],
+            [1,0,0,0,0,0,0,1,0,0,0,0,1,0,1,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ];
+
+        let player = {};
+        let sprites = [];
+        let gameActive = false;
+        let bloodFlash = 0;
+        let screenShake = 0;
+
+        function initGame() {
+            player = {
+                x: 2.5, y: 2.5,
+                dirX: 1, dirY: 0,
+                planeX: 0, planeY: 0.66,
+                moveSpeed: 0.08, rotSpeed: 0.0025,
+                ammo: 25, hp: 100,
+                shooting: false, bob: 0, isDead: false
+            };
+
+            sprites = [
+                {type: 'enemy', x: 8.5, y: 4.5, emoji: '👹', alive: true, hp: 30},
+                {type: 'enemy', x: 16.5, y: 1.5, emoji: '👾', alive: true, hp: 30}, // Исправлены координаты
+                {type: 'enemy', x: 17.5, y: 8.5, emoji: '👹', alive: true, hp: 30},
+                {type: 'enemy', x: 13.5, y: 8.5, emoji: '👾', alive: true, hp: 30},
+                {type: 'ammo', x: 4.5, y: 3.5, emoji: '📦', alive: true},
+                {type: 'ammo', x: 14.5, y: 5.5, emoji: '📦', alive: true},
+                {type: 'health', x: 17.5, y: 4.5, emoji: '❤️', alive: true},
+                {type: 'health', x: 6.5, y: 8.5, emoji: '❤️', alive: true}
+            ];
+
+            updateUI();
+            gameOverScreen.style.display = 'none';
+        }
+
+        const keys = {};
+        window.addEventListener('keydown', e => { keys[e.code] = true; });
+        window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+        function lockPointer() {
+            if (!player.isDead) canvas.requestPointerLock();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+        
+        overlay.addEventListener('click', lockPointer);
+        gameOverScreen.addEventListener('click', () => {
+            initGame();
+            lockPointer();
+        });
+
+        document.addEventListener('pointerlockchange', () => {
+            if (document.pointerLockElement === canvas) {
+                overlay.style.display = 'none';
+                gameActive = true;
+            } else {
+                if (!player.isDead) overlay.style.display = 'flex';
+                gameActive = false;
+            }
+        });
+
+        document.addEventListener('mousemove', e => {
+            if (gameActive && !player.isDead) {
+                // ФИКС КАМЕРЫ: Ограничиваем резкие скачки мыши (предотвращаем рывки)
+                let movX = e.movementX;
+                if (movX > 60) movX = 60;
+                if (movX < -60) movX = -60;
+                
+                const rot = movX * player.rotSpeed;
+                const oldDirX = player.dirX;
+                player.dirX = player.dirX * Math.cos(rot) - player.dirY * Math.sin(rot);
+                player.dirY = oldDirX * Math.sin(rot) + player.dirY * Math.cos(rot);
+                const oldPlaneX = player.planeX;
+                player.planeX = player.planeX * Math.cos(rot) - player.planeY * Math.sin(rot);
+                player.planeY = oldPlaneX * Math.sin(rot) + player.planeY * Math.cos(rot);
+            }
+        });
+
+        canvas.addEventListener('mousedown', () => {
+            if (gameActive && !player.isDead && player.ammo > 0 && !player.shooting) shoot();
+        });
+
+        function updateUI() {
+            hpDisplay.innerText = player.hp;
+            ammoDisplay.innerText = player.ammo;
+            
+            if (player.isDead) { faceDisplay.innerText = '💀'; return; }
+            if (player.shooting) { faceDisplay.innerText = '😠'; return; }
+            
+            if (player.hp > 75) faceDisplay.innerText = '😐';
+            else if (player.hp > 40) faceDisplay.innerText = '😕';
+            else faceDisplay.innerText = '🤕';
+        }
+
+        function shoot() {
+            player.shooting = true;
+            player.ammo--;
+            screenShake = 6;
+            playSound('shoot');
+            updateUI();
+            
+            sprites.forEach(s => {
+                if (!s.alive || s.type !== 'enemy') return;
+                const dx = s.x - player.x;
+                const dy = s.y - player.y;
+                const angleToSprite = Math.atan2(dy, dx);
+                const anglePlayer = Math.atan2(player.dirY, player.dirX);
+                let diff = angleToSprite - anglePlayer;
+                while(diff < -Math.PI) diff += Math.PI*2;
+                while(diff > Math.PI) diff -= Math.PI*2;
+                
+                if (Math.abs(diff) < 0.2) {
+                    s.hp -= 15;
+                    playSound('hit');
+                    if (s.hp <= 0) { 
+                        s.alive = false; 
+                        s.emoji = '💥'; 
+                    } else {
+                        // Отброс врага при попадании
+                        const pushBackX = s.x + Math.cos(angleToSprite) * 0.3;
+                        const pushBackY = s.y + Math.sin(angleToSprite) * 0.3;
+                        // Проверка чтобы не отбросить в стену
+                        if (worldMap[Math.floor(s.y)][Math.floor(pushBackX)] === 0) s.x = pushBackX;
+                        if (worldMap[Math.floor(pushBackY)][Math.floor(s.x)] === 0) s.y = pushBackY;
+                    }
+                }
+            });
+
+            setTimeout(() => {
+                player.shooting = false;
+                updateUI();
+            }, 120);
+        }
+
+        function takeDamage(amount) {
+            player.hp -= amount;
+            bloodFlash = 0.6;
+            screenShake = 15;
+            playSound('hit');
+            updateUI();
+            
+            if (player.hp <= 0) {
+                player.hp = 0;
+                player.isDead = true;
+                gameActive = false;
+                document.exitPointerLock();
+                gameOverScreen.style.display = 'flex';
+                updateUI();
+            }
+        }
+
+        function update() {
+            if (!gameActive || player.isDead) return;
+
+            let nextX = 0, nextY = 0;
+            if (keys['KeyW'] || keys['ArrowUp']) {
+                nextX += player.dirX * player.moveSpeed;
+                nextY += player.dirY * player.moveSpeed;
+            }
+            if (keys['KeyS'] || keys['ArrowDown']) {
+                nextX -= player.dirX * player.moveSpeed;
+                nextY -= player.dirY * player.moveSpeed;
+            }
+            if (keys['KeyA']) {
+                nextX -= player.planeX * player.moveSpeed;
+                nextY -= player.planeY * player.moveSpeed;
+            }
+            if (keys['KeyD']) {
+                nextX += player.planeX * player.moveSpeed;
+                nextY += player.planeY * player.moveSpeed;
+            }
+
+            const margin = 0.25;
+            const checkX = nextX > 0 ? margin : -margin;
+            const checkY = nextY > 0 ? margin : -margin;
+            
+            if (worldMap[Math.floor(player.y)][Math.floor(player.x + nextX + checkX)] === 0) {
+                player.x += nextX;
+            }
+            if (worldMap[Math.floor(player.y + nextY + checkY)][Math.floor(player.x)] === 0) {
+                player.y += nextY;
+            }
+
+            if (nextX !== 0 || nextY !== 0) player.bob += 0.25;
+
+            sprites.forEach(s => {
+                if (!s.alive) return;
+                const dist = Math.hypot(player.x - s.x, player.y - s.y);
+
+                if (s.type === 'ammo' && dist < 0.8) {
+                    player.ammo += 15;
+                    s.alive = false;
+                    bloodFlash = 0.2;
+                    playSound('pickup');
+                    updateUI();
+                }
+                if (s.type === 'health' && dist < 0.8 && player.hp < 100) {
+                    player.hp = Math.min(100, player.hp + 40);
+                    s.alive = false;
+                    playSound('pickup');
+                    updateUI();
+                }
+
+                if (s.type === 'enemy' && dist < 7) {
+                    if (dist > 1.2) {
+                        const dx = (player.x - s.x) / dist;
+                        const dy = (player.y - s.y) / dist;
+                        const enemySpeed = 0.025;
+                        const eMargin = 0.4; // ФИКС: Увеличен хитбокс врагов, чтобы не заходили в стены
+                        
+                        if (worldMap[Math.floor(s.y)][Math.floor(s.x + dx * enemySpeed + (dx>0?eMargin:-eMargin))] === 0) s.x += dx * enemySpeed;
+                        if (worldMap[Math.floor(s.y + dy * enemySpeed + (dy>0?eMargin:-eMargin))][Math.floor(s.x)] === 0) s.y += dy * enemySpeed;
+                    } 
+                    else if (dist <= 1.2) {
+                        if (Math.random() < 0.03) {
+                            takeDamage(10);
+                        }
+                    }
+                }
+            });
+
+            if (bloodFlash > 0) bloodFlash -= 0.02;
+            if (screenShake > 0) screenShake *= 0.8;
+            if (screenShake < 0.5) screenShake = 0;
+        }
+
+        function drawMinimap(w, h) {
+            const mapSize = 120;
+            const cellSize = mapSize / worldMap[0].length;
+            const margin = 20;
+            const startX = w - mapSize - margin;
+            const startY = margin;
+
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fillRect(startX, startY, mapSize, mapSize);
+            ctx.strokeStyle = '#444';
+            ctx.strokeRect(startX, startY, mapSize, mapSize);
+
+            for(let y=0; y<worldMap.length; y++) {
+                for(let x=0; x<worldMap[0].length; x++) {
+                    if(worldMap[y][x] > 0) {
+                        ctx.fillStyle = worldMap[y][x] === 1 ? '#a33' : (worldMap[y][x] === 2 ? '#33a' : '#aa3');
+                        ctx.fillRect(startX + x*cellSize, startY + y*cellSize, cellSize, cellSize);
+                    }
+                }
+            }
+
+            sprites.forEach(s => {
+                if (!s.alive) return;
+                ctx.fillStyle = s.type === 'enemy' ? '#f00' : (s.type === 'health' ? '#0f0' : '#0ff');
+                ctx.fillRect(startX + s.x*cellSize - 1.5, startY + s.y*cellSize - 1.5, 3, 3);
+            });
+
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(startX + player.x*cellSize - 2, startY + player.y*cellSize - 2, 4, 4);
+            
+            ctx.strokeStyle = '#fff';
+            ctx.beginPath();
+            ctx.moveTo(startX + player.x*cellSize, startY + player.y*cellSize);
+            ctx.lineTo(startX + (player.x + player.dirX*2)*cellSize, startY + (player.y + player.dirY*2)*cellSize);
+            ctx.stroke();
+        }
+
+        function draw() {
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.save();
+            
+            if (screenShake > 0) {
+                const sx = (Math.random() - 0.5) * screenShake;
+                const sy = (Math.random() - 0.5) * screenShake;
+                ctx.translate(sx, sy);
+            }
+
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, h/2);
+            skyGradient.addColorStop(0, '#050510');
+            skyGradient.addColorStop(1, '#222');
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, w, h / 2);
+
+            const floorGradient = ctx.createLinearGradient(0, h/2, 0, h);
+            floorGradient.addColorStop(0, '#1a1a1a');
+            floorGradient.addColorStop(1, '#333');
+            ctx.fillStyle = floorGradient;
+            ctx.fillRect(0, h / 2, w, h / 2);
+
+            const zBuffer = new Array(w);
+            const muzzleFlash = player.shooting ? 100 : 0; // Динамический свет от выстрела
+
+            for (let x = 0; x < w; x++) {
+                const cameraX = 2 * x / w - 1;
+                const rayDirX = player.dirX + player.planeX * cameraX;
+                const rayDirY = player.dirY + player.planeY * cameraX;
+
+                let mapX = Math.floor(player.x);
+                let mapY = Math.floor(player.y);
+
+                const deltaDistX = Math.abs(1 / rayDirX);
+                const deltaDistY = Math.abs(1 / rayDirY);
+
+                let stepX, stepY, sideDistX, sideDistY;
+
+                if (rayDirX < 0) {
+                    stepX = -1; sideDistX = (player.x - mapX) * deltaDistX;
+                } else {
+                    stepX = 1; sideDistX = (mapX + 1.0 - player.x) * deltaDistX;
+                }
+                if (rayDirY < 0) {
+                    stepY = -1; sideDistY = (player.y - mapY) * deltaDistY;
+                } else {
+                    stepY = 1; sideDistY = (mapY + 1.0 - player.y) * deltaDistY;
+                }
+
+                let hit = 0, side, wallType = 0;
+                while (hit === 0) {
+                    if (sideDistX < sideDistY) {
+                        sideDistX += deltaDistX; mapX += stepX; side = 0;
+                    } else {
+                        sideDistY += deltaDistY; mapY += stepY; side = 1;
+                    }
+                    if(mapX < 0 || mapX >= worldMap[0].length || mapY < 0 || mapY >= worldMap.length) {
+                        hit = 1; wallType = 1; break; 
+                    }
+                    if (worldMap[mapY][mapX] > 0) {
+                        hit = 1;
+                        wallType = worldMap[mapY][mapX];
+                    }
+                }
+
+                let perpWallDist;
+                if (side === 0) perpWallDist = (mapX - player.x + (1 - stepX) / 2) / rayDirX;
+                else perpWallDist = (mapY - player.y + (1 - stepY) / 2) / rayDirY;
+
+                const lineHeight = Math.floor(h / perpWallDist);
+                const drawStart = -lineHeight / 2 + h / 2;
+                const drawEnd = lineHeight / 2 + h / 2;
+
+                let r, g, b;
+                if (wallType === 1)      { r=180; g=30; b=30; }
+                else if (wallType === 2) { r=40; g=60; b=200; }
+                else                     { r=150; g=130; b=50; }
+
+                if (side === 1) { r = Math.floor(r*0.7); g = Math.floor(g*0.7); b = Math.floor(b*0.7); }
+
+                // Динамическое освещение от выстрела
+                r = Math.min(255, r + muzzleFlash / (perpWallDist));
+                g = Math.min(255, g + muzzleFlash / (perpWallDist));
+                b = Math.min(255, b + muzzleFlash / (perpWallDist));
+
+                const shadow = Math.max(0.1, Math.min(1, 4 / perpWallDist));
+                
+                ctx.strokeStyle = `rgb(${r * shadow}, ${g * shadow}, ${b * shadow})`;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(x, drawStart);
+                ctx.lineTo(x, drawEnd);
+                ctx.stroke();
+
+                zBuffer[x] = perpWallDist;
+            }
+
+            const sortedSprites = [...sprites].sort((a, b) => {
+                const distA = (player.x - a.x)**2 + (player.y - a.y)**2;
+                const distB = (player.x - b.x)**2 + (player.y - b.y)**2;
+                return distB - distA;
+            });
+
+            sortedSprites.forEach(s => {
+                const spriteX = s.x - player.x;
+                const spriteY = s.y - player.y;
+
+                const invDet = 1.0 / (player.planeX * player.dirY - player.dirX * player.planeY);
+                const transformX = invDet * (player.dirY * spriteX - player.dirX * spriteY);
+                const transformY = invDet * (-player.planeY * spriteX + player.planeX * spriteY);
+
+                if (transformY > 0.1) {
+                    const spriteScreenX = Math.floor((w / 2) * (1 + transformX / transformY));
+                    const spriteHeight = Math.abs(Math.floor(h / transformY));
+                    
+                    // ФИКС ВИДИМОСТИ: проверка с Math.floor для zBuffer
+                    if (spriteScreenX > -spriteHeight/2 && spriteScreenX < w + spriteHeight/2 && transformY < zBuffer[Math.floor(spriteScreenX)]) {
+                        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+                        ctx.beginPath();
+                        ctx.ellipse(spriteScreenX, h/2 + spriteHeight*0.4, spriteHeight*0.3, spriteHeight*0.1, 0, 0, Math.PI*2);
+                        ctx.fill();
+
+                        ctx.font = `${spriteHeight}px Arial`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        
+                        let drawY = h / 2;
+                        if (!s.alive) {
+                            ctx.save();
+                            ctx.translate(spriteScreenX, h/2 + spriteHeight*0.3);
+                            ctx.scale(1, 0.3);
+                            ctx.fillText(s.emoji, 0, 0);
+                            ctx.restore();
+                        } else {
+                            const hover = s.type === 'enemy' ? 0 : Math.sin(Date.now() / 200) * (spriteHeight*0.1);
+                            ctx.fillText(s.emoji, spriteScreenX, drawY + hover);
+                        }
+                    }
+                }
+            });
+
+            if (!player.isDead) {
+                const weaponSize = h * 0.45;
+                const bobOffsetX = Math.cos(player.bob) * 15;
+                const bobOffsetY = Math.abs(Math.sin(player.bob)) * 15;
+                const recoil = player.shooting ? 40 : 0;
+                
+                const wx = w / 2 - weaponSize / 2 + bobOffsetX;
+                const wy = h - weaponSize + 40 + bobOffsetY + recoil;
+
+                ctx.fillStyle = '#2a2a2a';
+                ctx.fillRect(wx + weaponSize*0.3 - 5, wy, weaponSize*0.4, weaponSize);
+                
+                ctx.fillStyle = '#444';
+                ctx.fillRect(wx + weaponSize*0.3, wy, weaponSize*0.4, weaponSize);
+                
+                ctx.fillStyle = '#111';
+                ctx.fillRect(wx + weaponSize*0.32, wy - 30, weaponSize*0.15, weaponSize);
+                ctx.fillRect(wx + weaponSize*0.53, wy - 30, weaponSize*0.15, weaponSize);
+                
+                ctx.fillStyle = '#555';
+                ctx.fillRect(wx + weaponSize*0.32, wy - 10, weaponSize*0.36, 10);
+
+                if (player.shooting) {
+                    ctx.fillStyle = 'rgba(255, 200, 50, 0.8)';
+                    ctx.beginPath();
+                    ctx.arc(w/2 + bobOffsetX, wy - 40, weaponSize*0.25, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                    ctx.beginPath();
+                    ctx.arc(w/2 + bobOffsetX, wy - 40, weaponSize*0.1, 0, Math.PI*2);
+                    ctx.fill();
+                }
+            }
+
+            drawMinimap(w, h);
+
+            if (bloodFlash > 0) {
+                ctx.fillStyle = `rgba(255, 0, 0, ${bloodFlash})`;
+                ctx.fillRect(0, 0, w, h);
+            }
+
+            ctx.restore();
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        initGame();
+        loop();
+    </script>
+</body>
+</html>

@@ -1,12 +1,22 @@
 let clicks = 0;
 const clickBtn = document.getElementById('clickBtn');
 const display = document.getElementById('score');
+const confettiLayer = document.getElementById('confetti-overlay');
 
 clickBtn.addEventListener('click', () => {
         clicks++;
         display.innerText = clicks;
+        const f = document.getElementById('flash');
+        f.style.transition = 'none'; 
+        f.style.opacity = '1';
+        setTimeout(() => { f.style.transition = 'opacity 0.4s'; f.style.opacity = '0'; }, 50);
 
-        if (clicks === 1000) {
+
+        
+
+        if (clicks === 100) {
+
+            
         alert("Ошибка! Видно не судьба((((");
         
         
