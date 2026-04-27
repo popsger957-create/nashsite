@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INK OS - Adaptive Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono&display=swap');
+        
+        /* Глобальные цветовые переменные */
+        :root {
+            --desktop-bg: #FBFBFB;
+            --window-bg: rgba(255, 255, 255, 0.9);
+            --app-bg: #ffffff;
+            --panel-bg: rgba(255, 255, 255, 0.7);
+            --text-main: #000000;
+            --text-muted: rgba(0, 0, 0, 0.4);
+            --border-main: rgba(0, 0, 0, 0.08);
+            --border-heavy: rgba(0, 0, 0, 0.15);
+            --element-bg: rgba(0, 0, 0, 0.04);
+            --element-hover: rgba(0, 0, 0, 0.08);
+            --accent-bg: #000000;
+            --accent-text: #ffffff;
+            --grid-color: rgba(0, 0, 0, 1);
+        }
+
+        /* Темная тема */
+        [data-theme="dark"] {
+            --desktop-bg: #0a0a0a;
+            --window-bg: rgba(30, 30, 30, 0.95);
+            --app-bg: #141414;
+            --panel-bg: rgba(20, 20, 20, 0.8);
+            --text-main: #ffffff;
+            --text-muted: rgba(255, 255, 255, 0.4);
+            --border-main: rgba(255, 255, 255, 0.1);
+            --border-heavy: rgba(255, 255, 255, 0.2);
+            --element-bg: rgba(255, 255, 255, 0.06);
+            --element-hover: rgba(255, 255, 255, 0.12);
+            --accent-bg: #ffffff;
+            --accent-text: #000000;
+            --grid-color: rgba(255, 255, 255, 1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--desktop-bg);
+            color: var(--text-main);
+            overflow: hidden;
+            user-select: none;
+            transition: background-color 0.4s ease, color 0.4s ease;
+        }
+
+        /* Плавные переходы для всех элементов интерфейса */
+        .window, .start-menu, .taskbar, .app-content, .element-bg, textarea, button, input {
+            transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease, transform 0.2s ease, opacity 0.2s ease;
+        }
+
+        /* Утилитарные классы */
+        .text-main { color: var(--text-main); }
+        .text-muted { color: var(--text-muted); }
+        .text-muted:hover { color: var(--text-main); }
+        
+        .border-main { border-color: var(--border-main); }
+        
+        .app-content { background-color: var(--app-bg); color: var(--text-main); }
+        
+        .element-bg { background-color: var(--element-bg); border-color: var(--border-main); }
+        .element-bg:hover { background-color: var(--element-hover); }
+        
+        .accent-bg { background-color: var(--accent-bg) !important; color: var(--accent-text) !important; border-color: transparent !important; }
+        .accent-hover:hover { background-color: var(--accent-bg) !important; color: var(--accent-text) !important; }
+
+        .bg-grid {
+            background-image: radial-gradient(circle, var(--grid-color) 1px, transparent 1px);
+            background-size: 32px 32px;
+        }
+
+        /* Сетка рабочего стола */
+        #desktop {
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, 84px);
+            grid-template-rows: repeat(auto-fill, 100px);
+            grid-auto-flow: column;
+            gap: 16px;
+            padding: 24px;
+            padding-bottom: 120px; /* Отступ для панели задач */
+            align-content: start;
+            overflow: hidden;
+        }
+
+        .desktop-file {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
+            padding: 8px;
+            border-radius: 12px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .desktop-file:hover {
+            background-color: var(--element-bg);
+            border-color: var(--border-main);
+        }
+
+        .desktop-file-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background-color: var(--element-bg);
+            border: 1px solid var(--border-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-main);
+            transition: all 0.2s;
+        }
+
+        .desktop-file:hover .desktop-file-icon {
+            background-color: var(--window-bg);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .desktop-file-name {
+            font-size: 10px;
+            text-align: center;
+            color: var(--text-main);
+            font-weight: 600;
+            line-height: 1.2;
+            word-break: break-word;
+            text-shadow: 0 1px 3px var(--desktop-bg);
+        }
+
+        /* Контекстное меню */
+        .context-menu {
+            position: absolute;
+            background: var(--window-bg);
+            backdrop-filter: blur(30px);
+            border: 1px solid var(--border-main);
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            z-index: 9999;
+            padding: 0.5rem;
+            min-width: 180px;
+            transform-origin: top left;
+            transition: opacity 0.15s ease, transform 0.15s ease;
+        }
+
+        .context-menu.hidden {
+            display: none;
+            opacity: 0;
+            transform: scale(0.95);
+        }
+
+        .context-menu-item {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-main);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+
+        .context-menu-item:hover {
+            background: var(--accent-bg);
+            color: var(--accent-text);
+        }
+
+        /* Окна */
+        .window {
+            position: absolute;
+            background: var(--window-bg);
+            backdrop-filter: blur(25px);
+            border: 1px solid var(--border-main);
+            border-radius: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+        }
+
+        .window.active {
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.2);
+            border-color: var(--border-heavy);
+            z-index: 50 !important;
+        }
+
+        .window.minimized {
+            display: none;
+        }
+
+        .start-menu {
+            background: var(--window-bg);
+            border: 1px solid var(--border-main);
+            transform-origin: bottom center;
+        }
+
+        .start-menu.hidden {
+            opacity: 0;
+            transform: translate(-50%, 20px) scale(0.95);
+            pointer-events: none;
+        }
+
+        .taskbar {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-main);
+        }
+
+        .calc-btn {
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border-main);
+            background: var(--element-bg);
+            color: var(--text-main);
+        }
+        .calc-btn:hover {
+            background: var(--accent-bg);
+            color: var(--accent-text);
+            transform: translateY(-1px);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .animate-fade { animation: fadeIn 0.3s ease-out forwards; }
+
+        .drag-handle {
+            border-bottom: 1px solid var(--border-main);
+        }
+
+        #notification-center {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .notification {
+            background: var(--window-bg);
+            border: 1px solid var(--border-main);
+            color: var(--text-main);
+            padding: 12px 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        textarea::placeholder, input::placeholder {
+            color: var(--text-muted);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body data-theme="light">
+
+    <div id="notification-center"></div>
+
+    <!-- Фоновая сетка -->
+    <div id="wallpaper" class="absolute inset-0 bg-grid opacity-[0.03] pointer-events-none transition-opacity duration-700 z-0"></div>
+
+    <!-- Рабочий стол (Контейнер для сетки файлов) -->
+    <div id="desktop"></div>
+
+    <!-- Контекстное меню -->
+    <div id="contextMenu" class="context-menu hidden">
+        <button class="context-menu-item" onclick="createDesktopFile()">
+            <i data-lucide="file-plus" class="w-4 h-4"></i>
+            <span>Создать файл</span>
+        </button>
+        <button class="context-menu-item" onclick="clearDesktop()">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+            <span>Очистить стол</span>
+        </button>
+    </div>
+
+    <!-- Меню Пуск -->
+    <div id="startMenu" class="start-menu hidden absolute bottom-24 left-1/2 -translate-x-1/2 w-96 rounded-[2.5rem] backdrop-blur-3xl shadow-2xl z-[100] p-10">
+        <div class="grid grid-cols-3 gap-8" id="appList">
+            <!-- Приложения добавятся через JS -->
+        </div>
+        <div class="mt-12 pt-6 border-t border-main flex justify-between items-center text-muted">
+            <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded-full accent-bg flex items-center justify-center text-[8px] font-black">A</div>
+                <span class="text-[9px] uppercase font-bold tracking-[0.2em] text-main">Administrator</span>
+            </div>
+            <div class="flex gap-4">
+                <i data-lucide="settings" class="w-4 h-4 text-muted hover:text-main cursor-pointer" onclick="openApp('settings')"></i>
+                <i data-lucide="power" class="w-4 h-4 text-muted hover:text-red-500 cursor-pointer" onclick="sysLogOff()"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Док / Панель задач -->
+    <div class="taskbar absolute bottom-6 left-1/2 -translate-x-1/2 h-16 px-4 flex items-center gap-2 backdrop-blur-3xl rounded-[2rem] shadow-[0_15px_35px_rgba(0,0,0,0.05)] z-[90]">
+        <button id="startButton" class="w-12 h-12 flex items-center justify-center rounded-2xl element-bg text-main accent-hover">
+            <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+        
+        <div class="w-px h-8 element-bg mx-1"></div>
+
+        <div id="taskbarIcons" class="flex items-center gap-2">
+            <!-- Иконки открытых окон -->
+        </div>
+
+        <div class="w-px h-8 element-bg mx-1"></div>
+
+        <div class="px-4 text-[12px] font-black tracking-tighter text-main text-right min-w-[80px]">
+            <div id="clockTime">00:00</div>
+            <div id="clockDate" class="text-[8px] uppercase tracking-widest text-muted">ПН</div>
+        </div>
+    </div>
+
+    <script>
+        const APPS = {
+            about: { title: 'Система', icon: 'info', width: 400, height: 350, 
+                content: `<div class="h-full app-content flex flex-col items-center justify-center text-center p-8 space-y-6">
+                    <div class="w-20 h-20 rounded-[2rem] border border-main element-bg text-main flex items-center justify-center shadow-sm transition-transform hover:rotate-6">
+                        <i data-lucide="terminal" class="w-10 h-10"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black tracking-tighter uppercase text-main">INK OS</h2>
+                        <p class="text-[10px] font-bold text-muted mt-1 uppercase tracking-widest">Version 2.0 / Adaptive</p>
+                    </div>
+                    <div class="element-bg border border-main rounded-xl p-4 w-full text-left font-mono text-[10px] text-main">
+                        <div>> Uptime: <span id="uptime">0s</span></div>
+                        <div>> Memory: 1.2GB / 16GB</div>
+                        <div>> Kernel: WebRuntime_v9</div>
+                    </div>
+                </div>`
+            },
+            notepad: { title: 'Заметки', icon: 'file-text', width: 500, height: 400,
+                content: `<textarea id="notepad-area" class="w-full h-full app-content text-main p-8 resize-none outline-none font-mono text-sm leading-relaxed" placeholder="Данные сохраняются автоматически..." spellcheck="false"></textarea>`
+            },
+            calculator: { title: 'Счет', icon: 'calculator', width: 320, height: 440,
+                content: `<div class="h-full flex flex-col p-8 app-content calc-app">
+                    <div id="calcDisplay" class="text-right text-4xl font-extralight text-main mb-8 overflow-hidden h-12">0</div>
+                    <div class="grid grid-cols-4 gap-3 flex-1" id="calcBtns"></div>
+                </div>`
+            },
+            settings: { title: 'Опции', icon: 'sliders', width: 400, height: 450,
+                content: `<div class="p-8 space-y-6 app-content h-full">
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-muted">Персонализация</h3>
+                    <div class="space-y-3">
+                        <button onclick="setTheme('light')" class="w-full p-4 rounded-xl border border-main element-bg text-main text-left text-[11px] font-bold uppercase flex justify-between items-center accent-hover"><span>Светлая тема</span> <i data-lucide="sun" class="w-4 h-4"></i></button>
+                        <button onclick="setTheme('dark')" class="w-full p-4 rounded-xl border border-main element-bg text-main text-left text-[11px] font-bold uppercase flex justify-between items-center accent-hover"><span>Темная тема</span> <i data-lucide="moon" class="w-4 h-4"></i></button>
+                    </div>
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-muted mt-8">Сетка фона</h3>
+                    <input type="range" min="0" max="100" value="3" oninput="setGridOpacity(this.value)" class="w-full" style="accent-color: var(--text-main);">
+                </div>`
+            },
+            browser: { title: 'Сеть', icon: 'globe', width: 850, height: 550,
+                content: `<div class="h-full flex flex-col app-content">
+                    <div class="flex p-3 gap-2 border-b border-main element-bg">
+                        <div class="flex-1 app-content border border-main rounded-full px-4 py-1.5 text-[10px] font-black text-muted uppercase tracking-[0.2em]">pure://mono-network</div>
+                    </div>
+                    <div class="flex-1 flex flex-col items-center justify-center text-muted gap-4">
+                        <i data-lucide="globe" class="w-16 h-16 animate-pulse"></i>
+                        <span class="text-[9px] font-black tracking-[0.4em] uppercase">Secure Channel Active</span>
+                    </div>
+                </div>`
+            }
+        };
+
+        let windows = [];
+        let activeWinId = null;
+        let zIndexCounter = 10;
+        let startTime = Date.now();
+        let fileCounter = 1;
+
+        function notify(msg) {
+            const container = document.getElementById('notification-center');
+            const note = document.createElement('div');
+            note.className = 'notification';
+            note.textContent = msg;
+            container.appendChild(note);
+            setTimeout(() => {
+                note.style.opacity = '0';
+                note.style.transform = 'translateX(20px)';
+                setTimeout(() => note.remove(), 300);
+            }, 3000);
+        }
+
+        window.closeWin = function(id) {
+            const el = document.getElementById(id);
+            if(el) {
+                el.style.transform = 'scale(0.9) translateY(10px)';
+                el.style.opacity = '0';
+                setTimeout(() => {
+                    el.remove();
+                    windows = windows.filter(w => w.id !== id);
+                    updateTaskbar();
+                }, 200);
+            }
+        };
+
+        window.minimizeWin = function(id) {
+            const el = document.getElementById(id);
+            if(el) {
+                el.classList.add('minimized');
+                updateTaskbar();
+            }
+        };
+
+        function sysLogOff() {
+            notify("Завершение сеанса...");
+            setTimeout(() => location.reload(), 1000);
+        }
+
+        function setTheme(theme) {
+            document.body.setAttribute('data-theme', theme);
+            notify(`Система: ${theme.toUpperCase()} тема`);
+        }
+
+        function setGridOpacity(val) {
+            document.getElementById('wallpaper').style.opacity = val / 100;
+        }
+
+        function init() {
+            lucide.createIcons();
+            updateClock();
+            setInterval(updateClock, 1000);
+            setInterval(() => {
+                const uptime = Math.floor((Date.now() - startTime) / 1000);
+                const uptimeEl = document.getElementById('uptime');
+                if(uptimeEl) uptimeEl.textContent = uptime + 's';
+            }, 1000);
+            
+            renderStartMenu();
+            initContextMenu();
+
+            document.getElementById('startButton').addEventListener('click', toggleStartMenu);
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('#startButton') && !e.target.closest('#startMenu')) {
+                    document.getElementById('startMenu').classList.add('hidden');
+                }
+            });
+
+            notify("Система INK OS готова");
+        }
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clockTime').textContent = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('clockDate').textContent = now.toLocaleDateString('ru-RU', { weekday: 'short' }).toUpperCase();
+        }
+
+        function renderStartMenu() {
+            const list = document.getElementById('appList');
+            Object.keys(APPS).forEach(id => {
+                const app = APPS[id];
+                const btn = document.createElement('button');
+                btn.className = 'flex flex-col items-center gap-3 group';
+                btn.onclick = () => openApp(id);
+                btn.innerHTML = `
+                    <div class="w-20 h-20 rounded-[2rem] border border-main element-bg text-main flex items-center justify-center transition-all accent-hover group-hover:shadow-xl group-active:scale-90">
+                        <i data-lucide="${app.icon}" class="w-7 h-7"></i>
+                    </div>
+                    <span class="text-[10px] uppercase tracking-[0.2em] font-black text-muted group-hover:text-main transition-colors">${app.title}</span>
+                `;
+                list.appendChild(btn);
+            });
+            lucide.createIcons();
+        }
+
+        function toggleStartMenu() {
+            document.getElementById('startMenu').classList.toggle('hidden');
+        }
+
+        // --- Логика Рабочего стола и Контекстного меню ---
+        function initContextMenu() {
+            const desktop = document.getElementById('desktop');
+            const menu = document.getElementById('contextMenu');
+
+            desktop.addEventListener('contextmenu', (e) => {
+                // Предотвращаем срабатывание контекстного меню поверх открытых окон или панелей
+                if(e.target.closest('.window') || e.target.closest('.taskbar') || e.target.closest('.start-menu') || e.target.closest('.desktop-file')) return;
+                
+                e.preventDefault();
+                
+                let x = e.clientX;
+                let y = e.clientY;
+                
+                menu.classList.remove('hidden');
+                
+                // Корректировка, если меню выходит за пределы экрана
+                if (x + menu.offsetWidth > window.innerWidth) x = window.innerWidth - menu.offsetWidth - 10;
+                if (y + menu.offsetHeight > window.innerHeight) y = window.innerHeight - menu.offsetHeight - 10;
+                
+                menu.style.left = `${x}px`;
+                menu.style.top = `${y}px`;
+            });
+
+            document.addEventListener('click', (e) => {
+                if(!e.target.closest('#contextMenu')) {
+                    menu.classList.add('hidden');
+                }
+            });
+        }
+
+        function createDesktopFile() {
+            const desktop = document.getElementById('desktop');
+            const fileEl = document.createElement('div');
+            fileEl.className = 'desktop-file group animate-fade';
+            
+            const fileName = `Файл ${fileCounter++}`;
+            
+            fileEl.innerHTML = `
+                <div class="desktop-file-icon group-hover:shadow-md">
+                    <i data-lucide="file-text" class="w-6 h-6"></i>
+                </div>
+                <span class="desktop-file-name">${fileName}</span>
+            `;
+            
+            // Открываем блокнот по двойному клику
+            fileEl.ondblclick = () => openApp('notepad');
+            
+            desktop.appendChild(fileEl);
+            lucide.createIcons();
+            
+            document.getElementById('contextMenu').classList.add('hidden');
+        }
+
+        function clearDesktop() {
+            document.getElementById('desktop').innerHTML = '';
+            fileCounter = 1;
+            notify('Рабочий стол очищен');
+            document.getElementById('contextMenu').classList.add('hidden');
+        }
+        // ---------------------------------------------------
+
+        function openApp(appId) {
+            const app = APPS[appId];
+            const existingWin = windows.find(w => w.appId === appId);
+            
+            if (existingWin) {
+                restoreWin(existingWin.id);
+                if (!document.getElementById('startMenu').classList.contains('hidden')) toggleStartMenu();
+                return;
+            }
+
+            const id = 'win-' + Date.now();
+            const winEl = document.createElement('div');
+            winEl.id = id;
+            winEl.className = 'window active animate-fade';
+            winEl.style.width = app.width + 'px';
+            winEl.style.height = app.height + 'px';
+            winEl.style.left = (window.innerWidth / 2 - app.width / 2 + (windows.length * 25)) + 'px';
+            winEl.style.top = (window.innerHeight / 2 - app.height / 2 + (windows.length * 25)) + 'px';
+            winEl.style.zIndex = ++zIndexCounter;
+
+            winEl.innerHTML = `
+                <div class="h-14 flex items-center justify-between px-8 cursor-default select-none border-b border-main drag-handle">
+                    <div class="flex items-center gap-3">
+                        <div class="w-1.5 h-1.5 rounded-full accent-bg"></div>
+                        <span class="text-[10px] uppercase tracking-[0.3em] font-black text-muted">${app.title}</span>
+                    </div>
+                    <div class="flex items-center gap-6">
+                        <button onclick="window.minimizeWin('${id}')" class="text-muted hover:text-main transition-all hover:scale-125"><i data-lucide="minus" class="w-4 h-4" style="stroke-width: 3px"></i></button>
+                        <button onclick="window.closeWin('${id}')" class="text-muted hover:text-main transition-all hover:scale-125"><i data-lucide="x" class="w-4 h-4" style="stroke-width: 3px"></i></button>
+                    </div>
+                </div>
+                <div class="flex-1 overflow-hidden relative app-content">
+                    ${app.content}
+                </div>
+            `;
+
+            document.body.appendChild(winEl);
+            windows.push({ id, appId });
+            focusWin(id);
+            lucide.createIcons();
+            
+            if(appId === 'calculator') initCalculator(id);
+            if(appId === 'notepad') initNotepad(id);
+            
+            makeDraggable(winEl);
+            updateTaskbar();
+            if (!document.getElementById('startMenu').classList.contains('hidden')) toggleStartMenu();
+        }
+
+        function focusWin(id) {
+            document.querySelectorAll('.window').forEach(w => w.classList.remove('active'));
+            const win = document.getElementById(id);
+            if(win) {
+                win.classList.remove('minimized');
+                win.classList.add('active');
+                win.style.zIndex = ++zIndexCounter;
+                activeWinId = id;
+            }
+            updateTaskbar();
+        }
+
+        function restoreWin(id) {
+            const el = document.getElementById(id);
+            if (el.classList.contains('minimized')) {
+                el.classList.remove('minimized');
+                focusWin(id);
+            } else if (activeWinId === id) {
+                minimizeWin(id);
+            } else {
+                focusWin(id);
+            }
+        }
+
+        function updateTaskbar() {
+            const container = document.getElementById('taskbarIcons');
+            container.innerHTML = '';
+            windows.forEach(win => {
+                const app = APPS[win.appId];
+                const btn = document.createElement('button');
+                const winEl = document.getElementById(win.id);
+                const isActive = activeWinId === win.id && !winEl.classList.contains('minimized');
+                
+                btn.className = `w-12 h-12 flex items-center justify-center rounded-2xl transition-all border relative group ${isActive ? 'accent-bg shadow-lg scale-110 border-transparent' : 'border-transparent element-bg text-main opacity-60 hover:opacity-100'}`;
+                btn.onclick = () => restoreWin(win.id);
+                btn.innerHTML = `
+                    <i data-lucide="${app.icon}" class="w-5 h-5"></i>
+                    <div class="absolute -bottom-1 w-1 h-1 rounded-full ${isActive ? 'bg-transparent' : 'accent-bg'} transition-opacity ${isActive ? 'opacity-0' : 'opacity-100'}"></div>
+                `;
+                container.appendChild(btn);
+            });
+            lucide.createIcons();
+        }
+
+        function makeDraggable(el) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            const handle = el.querySelector('.drag-handle');
+            handle.onmousedown = dragMouseDown;
+
+            function dragMouseDown(e) {
+                if (e.target.closest('button')) return;
+                focusWin(el.id);
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+
+            function elementDrag(e) {
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                el.style.top = (el.offsetTop - pos2) + "px";
+                el.style.left = (el.offsetLeft - pos1) + "px";
+            }
+
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+
+        function initCalculator(winId) {
+            const win = document.getElementById(winId);
+            const display = win.querySelector('#calcDisplay');
+            const btnsContainer = win.querySelector('#calcBtns');
+            const buttons = ['C', '/', 'X', '-', '7', '8', '9', '+', '4', '5', '6', '=', '1', '2', '3', '0'];
+            let current = '0';
+
+            buttons.forEach(b => {
+                const btn = document.createElement('button');
+                btn.className = `calc-btn text-xs font-black ${b === '=' ? 'accent-bg shadow-md' : 'text-main'}`;
+                btn.textContent = b;
+                btn.onclick = () => {
+                    if (b === 'C') current = '0';
+                    else if (b === '=') {
+                        try {
+                            current = String(eval(current.replace(/X/g, '*')));
+                        } catch { current = 'Error'; }
+                    } else {
+                        current = current === '0' ? b : current + b;
+                    }
+                    display.textContent = current;
+                };
+                btnsContainer.appendChild(btn);
+            });
+        }
+
+        function initNotepad(winId) {
+            const area = document.getElementById('notepad-area');
+            const saved = localStorage.getItem('pure_os_notes');
+            if(saved) area.value = saved;
+
+            area.oninput = (e) => {
+                localStorage.setItem('pure_os_notes', e.target.value);
+            };
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
