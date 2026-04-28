@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Light 'em up!</title>
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: white;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        canvas {
+            border: 2px solid #333;
+            background-color: #1e1e1e;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            border-radius: 8px;
+        }
+        .ui {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        /* Общие стили для модалок */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            transition: opacity 0.3s ease;
+        }
+        .modal-content {
+            background: #2c2c2c;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            border: 2px solid #4b0082;
+            box-shadow: 0 0 30px rgba(75, 0, 130, 0.5);
+            max-width: 400px;
+        }
+        .hidden { display: none !important; }
+
+        input {
+            padding: 12px;
+            width: 80px;
+            font-size: 20px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background: #1e1e1e;
+            color: white;
+            margin: 15px;
+            text-align: center;
+        }
+        button {
+            padding: 12px 30px;
+            font-size: 18px;
+            background: #4b0082;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #6a0dad;
+            transform: scale(1.05);
+        }
+        #timer { font-size: 22px; font-weight: bold; color: #9370DB; text-shadow: 0 0 10px rgba(147, 112, 219, 0.5); }
+        
+        h2 { color: #9370DB; margin-top: 0; }
+        .win-text { font-size: 24px; color: #00ff88; margin-bottom: 20px; }
+        .lose-text { font-size: 24px; color: #ff4444; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <!-- Модалка настроек -->
+    <div id="setupModal" class="modal">
+        <div class="modal-content">
+            <h2>Настройки игры</h2>
+            <p>Выберите размер поля:</p>
+            <input type="number" id="fieldSizeInput" value="5" min="2" max="20">
+            <br>
+            <button onclick="startGame()">Начать игру</button>
+        </div>
+    </div>
+
+    <!-- Модалка победы -->
+    <div id="winModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>ПОБЕДА!</h2>
+            <p class="win-text">Цепь успешно замкнута!</p>
+            <p id="statsText"></p>
+            <button onclick="location.reload()">Играть снова</button>
+        </div>
+    </div>
+
+    <!-- Модалка проигрыша -->
+    <div id="loseModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>ВРЕМЯ ВЫШЛО</h2>
+            <p class="lose-text">Энергия иссякла...</p>
+            <button onclick="location.reload()">Попробовать еще раз</button>
+        </div>
+    </div>
+
+    <div class="ui">
+        <div id="timer">Осталось времени: 120 сек.</div>
+    </div>
+    
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const timerElement = document.getElementById('timer');
+        
+        const setupModal = document.getElementById('setupModal');
+        const winModal = document.getElementById('winModal');
+        const loseModal = document.getElementById('loseModal');
+        const statsText = document.getElementById('statsText');
+
+        let gridSize = 5;
+        let cellSize = 60;
+        let grid = [];
+        let path = [];
+        let startTime;
+        let gameActive = false;
+        let animationFrame;
+
+        class Block {
+            constructor(type, x, y, correctRotation) {
+                this.type = type;
+                this.x = x;
+                this.y = y;
+                this.correctRotation = correctRotation;
+                this.currentRotation = [0, 90, 180, 270][Math.floor(Math.random() * 4)];
+                this.isLit = false;
+            }
+
+            rotate() {
+                this.currentRotation = (this.currentRotation + 90) % 360;
+            }
+
+            checkIsCorrect() {
+                if (this.type === 'straight') {
+                    return this.currentRotation % 180 === this.correctRotation % 180;
+                }
+                return this.currentRotation === this.correctRotation;
+            }
+        }
+
+        function startGame() {
+            const input = document.getElementById('fieldSizeInput');
+            gridSize = parseInt(input.value) || 5;
+            if (gridSize < 2) gridSize = 2;
+            if (gridSize > 20) gridSize = 20;
+
+            setupModal.classList.add('hidden');
+            initGame();
+        }
+
+        function initGame() {
+            const maxDim = Math.min(window.innerWidth - 40, window.innerHeight - 200);
+            cellSize = Math.floor(maxDim / gridSize);
+            canvas.width = gridSize * cellSize;
+            canvas.height = gridSize * cellSize;
+
+            grid = Array.from({ length: gridSize }, () => Array(gridSize).fill(null));
+            path = [];
+            generateSnakePath();
+            
+            startTime = Date.now();
+            gameActive = true;
+            updateLighting();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function generateSnakePath() {
+            for (let y = 0; y < gridSize; y++) {
+                if (y % 2 === 0) {
+                    for (let x = 0; x < gridSize; x++) path.push({x, y});
+                } else {
+                    for (let x = gridSize - 1; x >= 0; x--) path.push({x, y});
+                }
+            }
+
+            for (let i = 0; i < path.length; i++) {
+                const curr = path[i];
+                const prev = i > 0 ? path[i-1] : null;
+                const nxt = i < path.length - 1 ? path[i+1] : null;
+
+                let type, correct;
+
+                if (!prev || !nxt) {
+                    type = 'straight';
+                    correct = (prev && prev.y === curr.y) || (nxt && nxt.y === curr.y) ? 90 : 0;
+                } else if (prev.x === nxt.x || prev.y === nxt.y) {
+                    type = 'straight';
+                    correct = (prev.x === curr.x) ? 0 : 90;
+                } else {
+                    type = 'corner';
+                    const sides = new Set([
+                        `${prev.x - curr.x},${prev.y - curr.y}`,
+                        `${nxt.x - curr.x},${nxt.y - curr.y}`
+                    ]);
+
+                    if (sides.has('0,-1') && sides.has('1,0')) correct = 0;
+                    else if (sides.has('1,0') && sides.has('0,1')) correct = 90;
+                    else if (sides.has('0,1') && sides.has('-1,0')) correct = 180;
+                    else if (sides.has('-1,0') && sides.has('0,-1')) correct = 270;
+                    else correct = 0;
+                }
+                grid[curr.y][curr.x] = new Block(type, curr.x, curr.y, correct);
+            }
+        }
+
+        function updateLighting() {
+            for (let y = 0; y < gridSize; y++) {
+                for (let x = 0; x < gridSize; x++) {
+                    grid[y][x].isLit = false;
+                }
+            }
+
+            for (let i = 0; i < path.length; i++) {
+                const b = grid[path[i].y][path[i].x];
+                if (b.checkIsCorrect()) {
+                    if (i === 0 || grid[path[i-1].y][path[i-1].x].isLit) {
+                        b.isLit = true;
+                    } else break;
+                } else break;
+            }
+        }
+
+        function drawPipe(b) {
+            const cx = b.x * cellSize + cellSize / 2;
+            const cy = b.y * cellSize + cellSize / 2;
+            const thick = cellSize * 0.2;
+
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(b.currentRotation * Math.PI / 180);
+
+            ctx.strokeStyle = b.isLit ? '#9370DB' : '#444';
+            ctx.lineWidth = thick;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            if (b.isLit) {
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#4b0082';
+            }
+
+            ctx.beginPath();
+            if (b.type === 'straight') {
+                ctx.moveTo(0, -cellSize/2 + 5);
+                ctx.lineTo(0, cellSize/2 - 5);
+            } else {
+                ctx.moveTo(cellSize/2 - 5, 0);
+                ctx.lineTo(0, 0);
+                ctx.lineTo(0, -cellSize/2 + 5);
+            }
+            ctx.stroke();
+            ctx.restore();
+            
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(b.x * cellSize, b.y * cellSize, cellSize, cellSize);
+        }
+
+        function gameLoop() {
+            if (!gameActive) return;
+
+            const timePassed = Math.floor((Date.now() - startTime) / 1000);
+            const timeLeft = Math.max(0, 120 - timePassed);
+            timerElement.innerText = `Осталось времени: ${timeLeft} сек.`;
+
+            if (timeLeft <= 0) {
+                gameActive = false;
+                loseModal.classList.remove('hidden');
+                return;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let y = 0; y < gridSize; y++) {
+                for (let x = 0; x < gridSize; x++) {
+                    drawPipe(grid[y][x]);
+                }
+            }
+
+            animationFrame = requestAnimationFrame(gameLoop);
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (!gameActive) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+
+            const gx = Math.floor(mx / cellSize);
+            const gy = Math.floor(my / cellSize);
+
+            if (gx >= 0 && gx < gridSize && gy >= 0 && gy < gridSize) {
+                grid[gy][gx].rotate();
+                updateLighting();
+
+                const last = path[path.length - 1];
+                if (grid[last.y][last.x].isLit) {
+                    gameActive = false;
+                    const finalTime = Math.floor((Date.now() - startTime) / 1000);
+                    statsText.innerText = `Время прохождения: ${finalTime} сек.`;
+                    winModal.classList.remove('hidden');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
