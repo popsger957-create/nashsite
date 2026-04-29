@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>БП: Подготовка объекта к заезду — Как есть | ДАЧА</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #F5F4F0;
+    --surface: #FFFFFF;
+    --border: #D8D5CC;
+    --text-main: #1A1915;
+    --text-secondary: #6B6860;
+    --text-muted: #9E9B93;
+
+    --event-fill: #E8F4E8;
+    --event-border: #3A8A3A;
+    --event-text: #1F5C1F;
+
+    --func-fill: #EEF3FC;
+    --func-border: #3B6FD4;
+    --func-text: #1C3D8A;
+
+    --gw-fill: #FFF3E0;
+    --gw-border: #D4820A;
+    --gw-text: #7A4600;
+
+    --role-fill: #F3EEF9;
+    --role-border: #8B5CC8;
+    --role-text: #4A1E85;
+
+    --arrow: #888077;
+    --start-color: #3A8A3A;
+    --end-color: #C0392B;
+
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text-main);
+    min-height: 100vh;
+    padding: 32px 24px 64px;
+  }
+
+  /* ─── Header ─── */
+  .page-header {
+    max-width: 1000px;
+    margin: 0 auto 32px;
+  }
+  .page-header .meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .page-header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 4px;
+    letter-spacing: -0.02em;
+  }
+  .page-header .sub {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  /* ─── Legend ─── */
+  .legend {
+    max-width: 1000px;
+    margin: 0 auto 28px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  .legend-icon {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+  }
+
+  /* ─── Canvas ─── */
+  .canvas-wrap {
+    max-width: 1000px;
+    margin: 0 auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 40px 32px;
+    overflow-x: auto;
+  }
+
+  .diagram {
+    position: relative;
+    width: 880px;
+    margin: 0 auto;
+  }
+
+  /* ─── Flow track ─── */
+  .track {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    position: relative;
+  }
+
+  /* ─── Connector ─── */
+  .connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+  }
+  .connector-line {
+    width: 2px;
+    height: 28px;
+    background: var(--arrow);
+  }
+  .connector-arrow {
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid var(--arrow);
+  }
+  .connector-label {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+
+  /* ─── Event (шестиугольник) ─── */
+  .event-wrap {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: relative;
+  }
+  .event-hex {
+    position: relative;
+    width: 380px;
+    flex-shrink: 0;
+  }
+  .event-hex svg { width: 100%; display: block; }
+  .event-role {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 14px;
+    border: 1.5px solid var(--role-border);
+    border-radius: 50px;
+    background: var(--role-fill);
+    font-size: 11px;
+    color: var(--role-text);
+    font-weight: 500;
+    white-space: nowrap;
+    font-family: var(--mono);
+    letter-spacing: 0.02em;
+  }
+  .role-line {
+    width: 24px;
+    height: 1.5px;
+    background: var(--role-border);
+    flex-shrink: 0;
+  }
+
+  /* ─── Function (скруглённый прямоугольник) ─── */
+  .function-wrap {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .function-box {
+    width: 380px;
+    padding: 13px 20px;
+    background: var(--func-fill);
+    border: 1.5px solid var(--func-border);
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--func-text);
+    text-align: center;
+    line-height: 1.4;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .function-box .func-num {
+    position: absolute;
+    top: 5px;
+    left: 10px;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--func-border);
+    opacity: 0.7;
+  }
+
+  /* ─── Gateway (ромб) ─── */
+  .gateway-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    position: relative;
+    justify-content: center;
+  }
+  .gateway-diamond {
+    position: relative;
+    width: 120px;
+    height: 70px;
+    flex-shrink: 0;
+  }
+  .gateway-diamond svg { width: 100%; height: 100%; }
+  .gw-branches {
+    display: flex;
+    gap: 0;
+    align-items: flex-start;
+    justify-content: center;
+    width: 880px;
+    position: relative;
+    margin-top: 0;
+  }
+
+  .branch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .branch-label {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .branch-line-h {
+    height: 2px;
+    background: var(--arrow);
+    flex-shrink: 0;
+  }
+  .branch-line-v {
+    width: 2px;
+    background: var(--arrow);
+    flex-shrink: 0;
+  }
+  .branch-arrow-down {
+    width: 0; height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid var(--arrow);
+  }
+  .branch-arrow-right {
+    width: 0; height: 0;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-left: 8px solid var(--arrow);
+  }
+
+  /* ─── Rejoin ─── */
+  .rejoin-area {
+    position: relative;
+    width: 880px;
+    display: flex;
+    justify-content: center;
+    margin-top: 0;
+  }
+
+  /* start/end markers */
+  .event-start-dot {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--start-color);
+    border: 3px solid #1F5C1F;
+    margin: 0 auto 4px;
+  }
+  .event-end-dot {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--end-color);
+    border: 4px solid #7A1F1F;
+    margin: 4px auto 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="meta">Схема 5 · Business Process · Нотация ARIS Express · КАК ЕСТЬ</div>
+  <h1>БП «Подготовка объекта к заезду (клининг и проверка)»</h1>
+  <div class="sub">Сеть гостевых домов «ДАЧА» — бизнес-процесс в текущем состоянии без автоматизации</div>
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item">
+    <svg class="legend-icon" viewBox="0 0 22 22"><polygon points="11,1 21,6 21,16 11,21 1,16 1,6" fill="#E8F4E8" stroke="#3A8A3A" stroke-width="1.5"/></svg>
+    <span><strong>Event</strong> — событие (шестиугольник)</span>
+  </div>
+  <div class="legend-item">
+    <svg class="legend-icon" viewBox="0 0 22 22"><rect x="1" y="4" width="20" height="14" rx="4" fill="#EEF3FC" stroke="#3B6FD4" stroke-width="1.5"/></svg>
+    <span><strong>Function</strong> — функция (скруглённый прямоугольник)</span>
+  </div>
+  <div class="legend-item">
+    <svg class="legend-icon" viewBox="0 0 22 22"><polygon points="11,1 21,11 11,21 1,11" fill="#FFF3E0" stroke="#D4820A" stroke-width="1.5"/><text x="11" y="15" text-anchor="middle" font-size="10" font-weight="600" fill="#7A4600">X</text></svg>
+    <span><strong>XOR Gateway</strong> — исключающий шлюз (ромб)</span>
+  </div>
+  <div class="legend-item">
+    <svg class="legend-icon" viewBox="0 0 38 22"><ellipse cx="19" cy="11" rx="17" ry="9" fill="#F3EEF9" stroke="#8B5CC8" stroke-width="1.5"/></svg>
+    <span><strong>Organizational unit</strong> — роль (эллипс)</span>
+  </div>
+</div>
+
+<!-- Diagram canvas -->
+<div class="canvas-wrap">
+<div class="diagram">
+<div class="track">
+
+  <!-- START EVENT -->
+  <div class="event-start-dot"></div>
+  <div class="connector"><div class="connector-line"></div></div>
+
+  <!-- EVENT 1 -->
+  <div class="event-wrap">
+    <div class="event-hex">
+      <svg viewBox="0 0 380 56" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="14,2 366,2 378,28 366,54 14,54 2,28" fill="#E8F4E8" stroke="#3A8A3A" stroke-width="1.5"/>
+        <text x="190" y="24" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-size="12" fill="#1F5C1F" font-weight="600">Событие — Старт</text>
+        <text x="190" y="40" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-size="11.5" fill="#1F5C1F">Гость сообщил о выезде / наступило 12:00</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="connector"><div class="connector-line"></div><div class="connector-arrow"></div></div>
+
+  <!-- FUNCTION 1 -->
+  <div class="function-wrap">
+    <div class="function-box">
+      <span class="func-num">Ф1</span>
+      Проверка факта выезда гостя
+    </div>
+    <div class="role-line"></div>
+    <div class="event-role">Администратор</div>
+  </div>
+
+  <div class="connector"><div class="connector-line"></div><div class="connector-arrow"></div></div>
+
+  <!-- GATEWAY 1 -->
+  <div class="gateway-wrap" style="width:100%;justify-content:center;">
+    <svg width="160" height="72" viewBox="0 0 160 72">
+      <polygon points="80,4 156,36 80,68 4,36" fill="#FFF3E0" stroke="#D4820A" stroke-width="1.5"/>
+      <text x="80" y="30" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="9" fill="#7A4600" font-weight="600">XOR</text>
+      <text x="80" y="44" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-size="10" fill="#7A4600">Гость выехал?</text>
+    </svg>
+  </div>
+
+  <!-- GW branches layout using SVG for precision -->
+  <div style="width:100%;position:relative;height:120px;">
+    <svg width="100%" height="120" viewBox="0 0 880 120" preserveAspectRatio="xMidYMid meet">
+      <!-- Нет — петля влево вверх (намекаем) -->
+      <line x1="360" y1="0" x2="200" y2="0" stroke="#D4820A" stroke-width="1.5" stroke-dasharray="5,4"/>
+      <line x1="200" y1="0" x2="200" y2="80" stroke="#D4820A" stroke-width="1.5" stroke-dasharray="5,4"/>
+      <text x="280" y="16" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="10" fill="#D4820A">Нет → звонок / ожидание</text>
+      <!-- Да — вниз -->
+      <line x1="520" y1="0" x2="520" y2="50" stroke="#3A8A3A" stroke-width="1.5"/>
+      <polygon points="514,44 520,56 526,44" fill="#3A8A3A"/>
+      <text x="558" y="30" font-family="'IBM Plex Mono',monospace" font-size="10" fill="#3A8A3A">Да</text>
+    </svg>
+  </div>
+
+  <!-- EVENT 2 -->
+  <div class="event-wrap">
+    <div class="event-hex">
+      <svg viewBox="0 0 380 56" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="14,2 366,2 378,28 366,54 14,54 2,28" fill="#E8F4E8" stroke="#3A8A3A" stroke-width="1.5"/>
+        <text x="190" y="32" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-size="12" fill="#1F5C1F">Объект освобождён гостем</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="connector"><div class="connector-line"></div><div class="connector-arrow"></div></div>
+
+  <!-- FUNCTION 2 -->
+  <div class="function-wrap">
+    <div class="function-box">
+      <span class="func-num">Ф2</span>
+      Уведомление хозяйственной службы о необходимости уборки
+    </div>
+    <div class="role-line"></div>
+    <div class="event-role">Управляющий</div>
+  </div>
+
+  <div class="connector"><div class="connector-line"></div><div class="connector-arrow"></div></div>
+
+  <!-- FUNCTION 3 -->
+  <div class="function-wrap">
+    <div class="function-box">
+      <span class="func-num">Ф3</span>
+      Прибытие на объект, первичный осмотр и фотофиксация состояния имущества
+    </div>
+    <div class="role-line"></div>
+    <div class="event-role">Специалист по клинингу</div>
+  </div>
+
+  <div class="connector"><div class="connector-line"></div><div class="connector-arrow"></div></div>
+
+  <!-- FUNCTION 4 -->
+  <div class="function-wrap">
+    <div class="function-box">
+      <span class="func-num">Ф4</span>
+      Комплексная уборка: комнаты, санузел, кухня, баня, купель, территория
+    </div>
+    <div class="role-line"></div>
+    <div class="event-role">Специалист по клинингу</div>
+  </div>
+
+  <div class="connector"><div class="connector-line"></div><div class="connector-arrow"></div></div>
+
+  <!-- FUNCTION 5 -->
+  <div class="function-wrap">
+    <div class="function-box">
+      <span class="func-num">Ф5</span>
+      Смена постельного белья, полотенец и пополнение расходных материалов
+    </div>
+    <div class="role-line"></div>
+    <div class="event-role">Специалист по клинингу</div>
+  </div>
+
+  <div class="connector"><div class="connector-line"></div><div class="connector-arrow"></div></div>
+
+  <!-- FUNCTION 6 -->
+  <div class="function-wrap">
+    <div class="function-box">
+      <span class="func-num">Ф6</span>
+      Повторный осмотр и проверка работоспособности всего оборудования
+    </div>
+    <div class="role-line"></div>
+    <div class="event-role">Специалист по клинингу</div>
+  </div>
+
+  <div class="connector"><div class="connector-line"></div><div class="connector-arrow"></div></div>
+
+  <!-- FUNCTION 7 -->
+  <div class="function-wrap">
+    <div class="function-box">
+      <span class="func-num">Ф7</span>
+      Отчёт управляющему о готовности объекта (фото/видео в WhatsApp)
+    </div>
+    <div class="role-line"></div>
+    <div class="event-role">Специалист по клинингу</div>
+  </div>
+
+  <div class="connector"><div class="connector-line"></div><div class="connector-arrow"></div></div>
+
+  <!-- EVENT 3 -->
+  <div class="event-wrap">
+    <div class="event-hex">
+      <svg viewBox="0 0 380 56">
+        <polygon points="14,2 366,2 378,28 366,54 14,54 2,28" fill="#E8F4E8" stroke="#3A8A3A" stroke-width="1.5"/>
+        <text x="190" y="32" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-size="12" fill="#1F5C1F">Управляющий получил отчёт о готовности</text>
+      </svg>
+    </div>
+    <div class="role-line"></div>
+    <div class="event-role">Управляющий</div>
+  </div>
+
+  <div class="connector"><div class="connector-line"></div><div class="connector-arrow"></div></div>
+
+  <!-- GATEWAY 2 -->
+  <div class="gateway-wrap" style="width:100%;justify-content:center;">
+    <svg width="200" height="72" viewBox="0 0 200 72">
+      <polygon points="100,4 196,36 100,68 4,36" fill="#FFF3E0" stroke="#D4820A" stroke-width="1.5"/>
+      <text x="100" y="28" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="9" fill="#7A4600" font-weight="600">XOR</text>
+      <text x="100" y="42" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-size="10" fill="#7A4600">Объект готов</text>
+      <text x="100" y="56" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-size="10" fill="#7A4600">без нареканий?</text>
+    </svg>
+  </div>
+
+  <!-- GW2 branches -->
+  <div style="width:100%;position:relative;height:0;">
+    <!-- SVG overlay for branch lines -->
+  </div>
+  
+  <!-- Two branch row -->
+  <div style="width:100%;display:flex;align-items:flex-start;justify-content:center;gap:0;margin-top:0;">
+    <!-- LEFT branch: Нет -->
+    <div style="display:flex;flex-direction:column;align-items:center;width:440px;">
+      <svg width="440" height="56" viewBox="0 0 440 56">
+        <line x1="220" y1="0" x2="100" y2="0" stroke="#D4820A" stroke-width="1.5"/>
+        <line x1="100" y1="0" x2="100" y2="40" stroke="#D4820A" stroke-width="1.5"/>
+        <polygon points="94,34 100,46 106,34" fill="#D4820A"/>
+        <text x="160" y="16" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="10" fill="#D4820A">Нет</text>
+      </svg>
+      <!-- FUNCTION 8 -->
+      <div class="function-wrap" style="width:380px;">
+        <div class="function-box" style="width:100%;">
+          <span class="func-num">Ф8</span>
+          Устранение выявленных недостатков
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+        <div class="role-line"></div>
+        <div class="event-role">Технический специалист</div>
+      </div>
+      <!-- Arrow back down to rejoin -->
+      <svg width="380" height="60" viewBox="0 0 380 60">
+        <line x1="190" y1="0" x2="190" y2="18" stroke="#888077" stroke-width="1.5"/>
+        <line x1="190" y1="18" x2="380" y2="18" stroke="#888077" stroke-width="1.5"/>
+        <line x1="380" y1="18" x2="380" y2="58" stroke="#888077" stroke-width="1.5"/>
+        <polygon points="374,52 380,60 386,52" fill="#888077" style="transform:translateX(-6px)"/>
+      </svg>
+    </div>
+    <!-- RIGHT branch: Да -->
+    <div style="display:flex;flex-direction:column;align-items:center;width:440px;">
+      <svg width="440" height="56" viewBox="0 0 440 56">
+        <line x1="220" y1="0" x2="340" y2="0" stroke="#3A8A3A" stroke-width="1.5"/>
+        <line x1="340" y1="0" x2="340" y2="40" stroke="#3A8A3A" stroke-width="1.5"/>
+        <polygon points="334,34 340,46 346,34" fill="#3A8A3A"/>
+        <text x="280" y="16" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="10" fill="#3A8A3A">Да</text>
+      </svg>
+      <div style="height:10px;"></div>
+      <!-- Just a spacer for alignment -->
+      <div style="height:56px;display:flex;align-items:center;justify-content:center;">
+        <div style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:#3A8A3A;background:#E8F4E8;border:1px solid #3A8A3A;border-radius:4px;padding:4px 12px;">→ к конечному событию</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rejoin connector -->
+  <div class="connector" style="margin-top:8px;"><div class="connector-line"></div><div class="connector-arrow"></div></div>
+
+  <!-- FINAL EVENT -->
+  <div class="event-wrap">
+    <div class="event-hex">
+      <svg viewBox="0 0 380 56">
+        <polygon points="14,2 366,2 378,28 366,54 14,54 2,28" fill="#E8F4E8" stroke="#3A8A3A" stroke-width="2"/>
+        <text x="190" y="32" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-size="12" fill="#1F5C1F" font-weight="600">Объект полностью готов к заезду следующего гостя</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- END marker -->
+  <div class="connector"><div class="connector-line"></div></div>
+  <div class="event-end-dot"></div>
+
+</div><!-- /track -->
+</div><!-- /diagram -->
+</div><!-- /canvas-wrap -->
+
+<!-- Footer note -->
+<div style="max-width:1000px;margin:20px auto 0;font-size:11px;color:#9E9B93;font-family:'IBM Plex Mono',monospace;text-align:center;">
+  Схема 5 из 13 · ARIS Express нотация Business Process · КАК ЕСТЬ (без автоматизации) · Сеть «ДАЧА»
+</div>
+
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>СКАЧАТЬ ОЗУ БЕСПЛАТНО БЕЗ СМС</title>
+    <style>
+        body {
+            background-color: #0b001a;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            overflow-x: hidden;
+        }
+        .container {
+            margin-top: 50px;
+            border: 5px double #ff00ff;
+            display: inline-block;
+            padding: 20px;
+            background: rgba(255, 0, 255, 0.1);
+            box-shadow: 0 0 20px #ff00ff;
+        }
+        .progress-bar {
+            width: 80%;
+            height: 30px;
+            border: 2px solid #00ff00;
+            margin: 20px auto;
+            display: none;
+            position: relative;
+        }
+        #fill {
+            width: 0%;
+            height: 100%;
+            background-color: #00ff00;
+            box-shadow: 0 0 10px #00ff00;
+            transition: width 0.1s;
+        }
+        button {
+            background: #ff00ff;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            text-shadow: 2px 2px black;
+        }
+        button:hover {
+            transform: scale(1.1);
+            background: #00ff00;
+            color: black;
+        }
+        .status { margin: 15px; font-size: 1.2em; color: yellow; }
+        marquee { background: red; color: white; font-weight: bold; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <marquee scrollamount="15">ВНИМАНИЕ: СКАЧИВАНИЕ ОЗУ! &nbsp;&nbsp;&nbsp; УСАТЫЙ ОДОБРЯЕТ &nbsp;&nbsp;&nbsp; 1С: ПРЕДПРИЯТИЕ</marquee>
+
+    <div class="container">
+        <h1>Скачать ОЗУ беслатно без сммс</h1>
+        <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJ6eW16ZzR6ZzR6ZzR6ZzR6ZzR6ZzR6ZzR6ZzR6ZzR6ZzR6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKMGpxxcaqzDBC8/giphy.gif" width="200" alt="matrix">
+        
+        <p>Выберите объем для скачивания:</p>
+        <select id="ram-select" style="font-size: 20px; margin-bottom: 20px;">
+            <option value="8">8 ГБ (Для лохов)</option>
+            <option value="64">64 ГБ (Для пацанов)</option>
+            <option value="128">128 ГБ (нахуя)</option>
+            <option value="999">1 ТБ (Взрыв счсвыаываыуа)</option>
+        </select>
+        <br>
+        <button onclick="startDownload()">СКАЧАТЬ беслаьтно</button>
+
+        <div class="progress-bar" id="p-bar">
+            <div id="fill"></div>
+        </div>
+        <div class="status" id="status-text"></div>
+    </div>
+
+    <script>
+        function startDownload() {
+            const bar = document.getElementById('p-bar');
+            const fill = document.getElementById('fill');
+            const status = document.getElementById('status-text');
+            const select = document.getElementById('ram-select');
+            
+            bar.style.display = 'block';
+            let width = 0;
+            
+            const phrases = [
+                "Оптимизация",
+                "деградация",
+                "телепортация",
+                "квитанция",
+                "инсталяция",
+                "кристализация",
+                "нация",
+                "акация",
+                "ция",
+                "Поиск свободного места в карманах...",
+                "Почти готово, подожди еще чуть-чуть...",
+                "Загрузка чистых гигабайт из облака..."
+            ];
+
+            const interval = setInterval(() => {
+                if (width >= 100) {
+                    clearInterval(interval);
+                    status.innerHTML = "<h2 style='color:red'>ОШИБКА: ПАМЯТЬ НЕ ВЛЕЗЛА В МОНИТОР!</h2><p>Попробуйте купить монитор побольше или удалите System32.</p>";
+                    alert("Скачано " + select.value + " ГБ, но они ушли на налоги!");
+                } else {
+                    width += Math.random() * 2;
+                    if (width > 100) width = 100;
+                    fill.style.width = width + '%';
+                    
+                    if (Math.random() > 0.9) {
+                        status.innerText = phrases[Math.floor(Math.random() * phrases.length)];
+                    }
+                }
+            }, 100);
+        }
+    </script>
+
+</body>
+</html>
