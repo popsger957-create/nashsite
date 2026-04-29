@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Роскошная_Сучка</title>
+</head>
+
+<style>
+
+    img {
+  /* Запрещаем перетаскивание */
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+
+  /* Запрещаем выделение (чтобы нельзя было выделить синим цветом) */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); 
+  gap: 15px; 
+  padding: 15px;
+}
+
+/* ЭТО — НАША ЧЕТКАЯ РАМКА ДЛЯ КАРТИНКИ */
+.image-wrapper {
+  height: 300px;
+  overflow: hidden; /* <--- САМОЕ ВАЖНОЕ: обрезает всё, что вылезает (включая блюр) */
+  border-radius: 8px; /* Скругление теперь на рамке */
+  position: relative;
+}
+
+/* Сама картинка внутри рамки */
+.image-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* СТИЛИ ТОЛЬКО ДЛЯ VIP БЛОКОВ */
+.VIP img {
+  filter: blur(20px); /* Блюр теперь внутри рамки */
+}
+
+/* Розовое наложение ПОВЕРХ картинки (чтобы изменить цвет блюра) */
+.VIP::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(255, 0, 200, 0.4); /* Розовый оттенок */
+  pointer-events: none; /* Пропускает клики */
+}
+
+.VIP h1 {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%); /* Идеальный центр */
+  
+  margin: 0;
+  font-size: 80px; /* Размер замка */
+  z-index: 10;     /* Достаточно 10, если у блюра нет z-index выше */
+  
+  /* Чтобы замок нельзя было выделить мышкой как текст */
+  user-select: none;
+  pointer-events: none;
+}
+
+.titl{
+    color: rgba(255, 0, 200, 0.4);
+    font-size: 100px;
+    text-align: center;
+}
+</style>
+<body>
+
+    <h1 class="titl">СОБАКА БОЛОНКА</h1>
+
+<div class="grid-container">
+  
+  <div class="image-wrapper">
+    <img src="bolonka\1367889743516_bulletin.webp" alt="Описание">
+  </div>
+  
+  <div class="image-wrapper">
+    <img src="bolonka\images (1).jpg" alt="Описание">
+  </div>
+  
+  <div class="image-wrapper VIP">
+    <img src="bolonka\images (2).jpg" alt="Описание">
+    <h1>🔒</h1>
+  </div>
+  
+  <div class="image-wrapper VIP">
+    <img src="bolonka\images (3).jpg" alt="Описание">
+    <h1>🔒</h1>
+  </div>
+  
+  <div class="image-wrapper VIP">
+    <img src="bolonka\images.jpg" alt="Описание">
+    <h1>🔒</h1>
+  </div>
+  
+  <div class="image-wrapper VIP">
+    <img src="bolonka\strizhka-bolonki.jpg" alt="Описание">
+    <h1>🔒</h1>
+  </div>
+  
+</div>
+    
+</body>
+</html>

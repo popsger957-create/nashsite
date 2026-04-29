@@ -1,0 +1,106 @@
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background-image: url('v1051-43b.jpg');
+    background-size: cover;      
+    background-position: center; 
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    
+}
+
+.reklama{
+    position:absolute;
+    text-align: center;
+    max-width: 20vh;
+    left: 10px;
+    top: 36vh;
+    
+    
+backdrop-filter: blur(10px);
+border: 1px solid rgba(255, 255, 255, 0.2);    
+    border-radius: 10px;
+    
+    color: aliceblue;
+    background-color: rgb(255, 255, 255, 0.1);
+    padding: 20px;
+}
+
+.reklama img{
+
+    max-width: 100%; 
+    height: 20%;    
+    display: block; 
+    margin-bottom: 20px; 
+    border-radius: 10px;
+    transition: 0.3s;
+    font-size: 0;
+    line-height: 0;
+    
+
+}
+
+
+
+.title{
+text-align: center;
+font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+color: rgb(186, 186, 240);
+font-size: 100px;
+margin-top: 0px;
+padding: 10px;
+backdrop-filter: blur(10px);
+border-radius: 10px;
+max-height: 20vh;
+}
+
+/* Основной контейнер сетки */
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 колонки */
+  gap: 20px; 
+  padding: 20px;
+  margin-top: 5px;
+  margin-left: 30vh; /* Отступ, чтобы не перекрывалось боковой рекламой */
+}
+
+/* Стили для каждой карточки */
+.grid-item {
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 15px;
+  overflow: hidden; /* Чтобы картинка не вылезала за скругленные углы */
+  transition: transform 0.3s ease;
+  color: aliceblue;
+}
+
+.grid-item:hover {
+  transform: translateY(-5px); /* Легкий эффект при наведении */
+}
+
+/* Стили для картинок внутри сетки */
+.grid-item img {
+  width: 100%;
+  height: 300px; /* Фиксированная высота для ровности */
+  object-fit: cover; /* Картинка заполнит область, не растягиваясь */
+  display: block;
+}
+
+/* Стили для текста под фото */
+.item-info {
+  padding: 15px;
+  text-align: center;
+}
+
+.item-info h3 {
+  margin: 0 0 5px 0;
+  font-family: sans-serif;
+}
+
+.item-info p {
+  margin: 0;
+  font-size: 0.9em;
+  opacity: 0.8;
+}
