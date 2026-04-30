@@ -55,3 +55,30 @@ function updateCounter() {
 // Запускаем обновление каждые 100мс
 setInterval(updateCounter, 100);
 updateCounter();
+
+
+
+
+let secretCode = "";
+document.addEventListener('keydown', (e) => {
+    // Получаем символ клавиши
+    const char = e.code.replace('Key', '').toLowerCase();
+    secretCode += char;
+
+    if (secretCode.length > 4) secretCode = secretCode.substring(1);
+
+    if (secretCode === "jopa") {
+        const body = document.body;
+        
+        // Если уже крутится — выключаем, если нет — включаем
+        if (body.classList.contains('is-spinning')) {
+            body.classList.remove('is-spinning');
+            console.log("Вращение остановлено");
+        } else {
+            body.classList.add('is-spinning');
+            console.log("Погнали! Медленный поворот активирован...");
+        }
+        
+        secretCode = ""; 
+    }
+});

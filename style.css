@@ -21,6 +21,20 @@
     
 }
 
+@keyframes slow-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.is-spinning {
+    /* 30s — скорость одного оборота. Можно поставить 60s, чтобы было еще незаметнее */
+    animation: slow-spin 30s linear infinite;
+    transform-origin: center center;
+}
 .header-logo {
     height: 50px;
     width: auto;
