@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeoBuild - Конструктор сайтов</title>
+    <!-- Tailwind Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; overflow: hidden; background: #0f172a; margin: 0; }
+        .glass-panel { background: rgba(17, 24, 39, 0.95); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .btn-brutal { border: 2px solid #000; box-shadow: 4px 4px 0px 0px rgba(0,0,0,1); transition: all 0.1s ease; cursor: pointer; }
+        .btn-brutal:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0px 0px rgba(0,0,0,1); }
+        
+        .preview-mode #ui-left, .preview-mode #ui-right, .preview-mode #ui-top { display: none !important; }
+        .preview-mode #canvas-wrapper { padding: 0; background: #fff; height: 100vh; }
+        .preview-mode #canvas { max-width: 100%; border: none; box-shadow: none; border-radius: 0; width: 100%; }
+        .preview-mode #btn-exit-preview { display: flex; }
+
+        #canvas .block-entry { cursor: pointer; position: relative; transition: all 0.2s; border: 2px solid transparent; }
+        #canvas .block-entry:hover { border-color: #6366f1; z-index: 20; }
+        #canvas .block-selected { border-color: #6366f1; z-index: 30; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
+        
+        .empty-icon { font-size: 80px; margin-bottom: 1.5rem; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1)); animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    </style>
+</head>
+<body class="text-slate-200 h-screen w-screen flex flex-col">
+
+    <header id="ui-top" class="h-16 glass-panel flex justify-between items-center px-6 z-50 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 bg-indigo-600 rounded-lg flex items-center justify-center font-black text-white border-2 border-black">N</div>
+            <span class="text-xl font-extrabold tracking-tight">NeoBuild</span>
+        </div>
+        <div class="flex gap-4">
+            <button id="btn-preview" class="btn-brutal bg-yellow-400 text-black font-bold py-2 px-5 rounded-md text-sm">👁 Предпросмотр</button>
+            <button id="btn-export-trigger" class="btn-brutal bg-indigo-600 text-white font-bold py-2 px-5 rounded-md text-sm">💾 Экспорт</button>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <aside id="ui-left" class="w-72 glass-panel border-r border-white/10 flex flex-col shrink-0">
+            <div class="p-4 border-b border-white/10 text-[10px] font-black text-slate-500 uppercase tracking-widest">Блоки</div>
+            <div class="p-4 space-y-3 overflow-y-auto flex-1">
+                <button data-type="navbar" class="add-block-btn w-full bg-white/5 hover:bg-white/10 p-3 rounded-xl transition text-left text-sm">☰ Навигация</button>
+                <button data-type="hero" class="add-block-btn w-full bg-white/5 hover:bg-white/10 p-3 rounded-xl transition text-left text-sm">✨ Главный экран</button>
+                <button data-type="features" class="add-block-btn w-full bg-white/5 hover:bg-white/10 p-3 rounded-xl transition text-left text-sm">▤ Особенности</button>
+                <button data-type="footer" class="add-block-btn w-full bg-white/5 hover:bg-white/10 p-3 rounded-xl transition text-left text-sm">⚓ Подвал</button>
+            </div>
+        </aside>
+
+        <main id="canvas-wrapper" class="flex-1 overflow-y-auto bg-[#020617] p-8 transition-all flex flex-col items-center">
+            <div id="canvas" class="w-full max-w-[1000px] bg-white min-h-full shadow-2xl relative rounded-md flex flex-col">
+                <div id="empty-hint" class="flex-1 flex flex-col items-center justify-center text-center p-10 bg-white">
+                    <div class="empty-icon">🎨</div>
+                    <h2 class="text-2xl font-black text-slate-800">Холст пуст</h2>
+                </div>
+            </div>
+        </main>
+
+        <aside id="ui-right" class="w-80 glass-panel border-l border-white/10 flex flex-col shrink-0">
+            <div class="p-4 border-b border-white/10 text-[10px] font-black text-slate-500 uppercase tracking-widest">Свойства</div>
+            <div id="settings-content" class="p-6 overflow-y-auto flex-1">
+                <p class="text-sm italic opacity-40 text-center mt-10">Выберите блок</p>
+            </div>
+        </aside>
+    </div>
+
+    <button id="btn-exit-preview" class="hidden fixed bottom-8 right-8 btn-brutal bg-red-600 text-white font-black py-4 px-10 rounded-full z-[100]">✕ ВЫЙТИ</button>
+
+    <div id="modal-export" class="fixed inset-0 bg-black/90 z-[200] hidden items-center justify-center p-6">
+        <div class="bg-[#1e293b] w-full max-w-4xl h-[80vh] rounded-3xl border border-white/10 flex flex-col overflow-hidden">
+            <div class="p-6 border-b border-white/10 flex justify-between items-center">
+                <span class="font-bold">ГОТОВЫЙ КОД</span>
+                <button id="btn-close-modal" class="text-2xl">&times;</button>
+            </div>
+            <textarea id="code-output" class="flex-1 bg-black/40 p-6 font-mono text-xs text-indigo-300 outline-none resize-none" readonly></textarea>
+            <div class="p-6 border-t border-white/10 flex justify-end gap-4">
+                <button id="btn-copy" class="btn-brutal bg-indigo-600 px-6 py-2 text-white font-bold rounded-lg">Копировать</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold opacity-0 transition-all z-[300] pointer-events-none"></div>
+
+    <script>
+        (function() {
+            "use strict";
+            
+            document.addEventListener('DOMContentLoaded', function() {
+                const BLOCKS_DB = {
+                    navbar: {
+                        name: 'Навигация',
+                        defaults: { logo: 'NEO', bg: '#ffffff', color: '#000000' },
+                        tpl: (p) => '<nav class="p-6 flex justify-between items-center" style="background:' + p.bg + ';color:' + p.color + '"><div class="font-black text-xl">' + p.logo + '</div><div class="flex gap-4 text-sm font-bold"><span>Home</span><span>Work</span></div></nav>'
+                    },
+                    hero: {
+                        name: 'Главный экран',
+                        defaults: { title: 'Hello World', text: 'Minimalist site builder', bg: '#f1f5f9', color: '#0f172a' },
+                        tpl: (p) => '<section class="py-20 px-10 text-center" style="background:' + p.bg + ';color:' + p.color + '"><h1 class="text-5xl font-black mb-4">' + p.title + '</h1><p class="opacity-70">' + p.text + '</p></section>'
+                    },
+                    features: {
+                        name: 'Особенности',
+                        defaults: { bg: '#ffffff', color: '#000000', title: 'Features' },
+                        tpl: (p) => '<section class="py-16 px-10" style="background:' + p.bg + ';color:' + p.color + '"><h2 class="text-center text-2xl font-black mb-10">' + p.title + '</h2><div class="grid grid-cols-2 gap-4"><div class="p-6 bg-black/5 rounded-xl">Fast</div><div class="p-6 bg-black/5 rounded-xl">Clean</div></div></section>'
+                    },
+                    footer: {
+                        name: 'Подвал',
+                        defaults: { bg: '#000000', color: '#ffffff', copy: '2026' },
+                        tpl: (p) => '<footer class="p-10 text-center text-xs" style="background:' + p.bg + ';color:' + p.color + '"><p>' + p.copy + '</p></footer>'
+                    }
+                };
+
+                let blocks = [];
+                let activeId = null;
+
+                const canvas = document.getElementById('canvas');
+                const settingsPanel = document.getElementById('settings-content');
+                const toast = document.getElementById('toast');
+
+                function showToast(msg) {
+                    if (!toast) return;
+                    toast.innerText = msg;
+                    toast.style.opacity = '1';
+                    setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+                }
+
+                function render() {
+                    if (!canvas) return;
+                    const hint = document.getElementById('empty-hint');
+                    
+                    const existing = canvas.querySelectorAll('.block-entry');
+                    existing.forEach(e => e.remove());
+
+                    if (blocks.length === 0) {
+                        if (hint) hint.style.display = 'flex';
+                    } else {
+                        if (hint) hint.style.display = 'none';
+                        blocks.forEach((block) => {
+                            const wrapper = document.createElement('div');
+                            wrapper.className = 'block-entry' + (activeId === block.id ? ' block-selected' : '');
+                            
+                            const innerHTML = '<div class="relative">' +
+                                '<div class="absolute top-2 right-2 flex gap-1 z-40 opacity-0 hover:opacity-100 transition">' +
+                                    '<button class="del-b w-6 h-6 bg-red-500 text-white rounded" data-id="' + block.id + '">×</button>' +
+                                '</div>' +
+                                '<div class="pointer-events-none">' + BLOCKS_DB[block.type].tpl(block.props) + '</div>' +
+                            '</div>';
+                            
+                            wrapper.innerHTML = innerHTML;
+                            
+                            wrapper.onclick = function(e) {
+                                e.stopPropagation();
+                                activeId = block.id;
+                                render();
+                            };
+
+                            const delBtn = wrapper.querySelector('.del-b');
+                            if (delBtn) {
+                                delBtn.onclick = function(e) {
+                                    e.stopPropagation();
+                                    blocks = blocks.filter(b => b.id !== block.id);
+                                    if(activeId === block.id) activeId = null;
+                                    render();
+                                };
+                            }
+                            canvas.appendChild(wrapper);
+                        });
+                    }
+                    updateSettings();
+                }
+
+                function updateSettings() {
+                    if (!settingsPanel) return;
+                    const active = blocks.find(b => b.id === activeId);
+                    if (!active) {
+                        settingsPanel.innerHTML = '<p class="text-sm opacity-40 text-center mt-10">Выберите блок</p>';
+                        return;
+                    }
+                    
+                    let html = '<div class="space-y-4"><b class="text-indigo-400 uppercase text-xs">' + BLOCKS_DB[active.type].name + '</b>';
+                    for (let k in active.props) {
+                        const isColor = k === 'bg' || k === 'color';
+                        html += '<div><label class="text-[10px] uppercase font-bold text-slate-500 block mb-1">' + k + '</label>' +
+                        '<input type="' + (isColor ? 'color' : 'text') + '" data-key="' + k + '" value="' + active.props[k] + '" class="prop-in w-full bg-white/5 border border-white/10 p-2 rounded text-sm text-white"></div>';
+                    }
+                    settingsPanel.innerHTML = html + '</div>';
+                    
+                    settingsPanel.querySelectorAll('.prop-in').forEach(function(input) {
+                        input.oninput = function(e) {
+                            active.props[input.dataset.key] = e.target.value;
+                            render();
+                        };
+                    });
+                }
+
+                document.querySelectorAll('.add-block-btn').forEach(function(btn) {
+                    btn.onclick = function() {
+                        const type = btn.getAttribute('data-type');
+                        const id = Math.random().toString(36).substr(2, 9);
+                        blocks.push({ id: id, type: type, props: JSON.parse(JSON.stringify(BLOCKS_DB[type].defaults)) });
+                        activeId = id;
+                        render();
+                        showToast("Блок добавлен");
+                    };
+                });
+
+                const btnPreview = document.getElementById('btn-preview');
+                if (btnPreview) {
+                    btnPreview.onclick = function() {
+                        document.body.classList.add('preview-mode');
+                        activeId = null;
+                        render();
+                    };
+                }
+
+                const btnExit = document.getElementById('btn-exit-preview');
+                if (btnExit) {
+                    btnExit.onclick = function() {
+                        document.body.classList.remove('preview-mode');
+                        render();
+                    };
+                }
+
+                const btnExport = document.getElementById('btn-export-trigger');
+                if (btnExport) {
+                    btnExport.onclick = function() {
+                        const content = blocks.map(b => BLOCKS_DB[b.type].tpl(b.props)).join('\n');
+                        const html = '<!DOCTYPE html>\n<html>\n<head>\n' +
+                            '<meta charset="UTF-8">\n' +
+                            '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
+                            '<script src="https://cdn.tailwindcss.com"><' + '/script>\n' +
+                            '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;900&display=swap" rel="stylesheet">\n' +
+                            '<style>body { font-family: "Inter", sans-serif; margin: 0; }</style>\n' +
+                            '</head>\n<body>\n' + content + '\n</body>\n</html>';
+
+                        const codeOut = document.getElementById('code-output');
+                        const modal = document.getElementById('modal-export');
+                        if (codeOut && modal) {
+                            codeOut.value = html;
+                            modal.classList.remove('hidden');
+                            modal.classList.add('flex');
+                        }
+                    };
+                }
+
+                const btnClose = document.getElementById('btn-close-modal');
+                if (btnClose) {
+                    btnClose.onclick = function() {
+                        const modal = document.getElementById('modal-export');
+                        if (modal) {
+                            modal.classList.add('hidden');
+                            modal.classList.remove('flex');
+                        }
+                    };
+                }
+
+                const btnCopy = document.getElementById('btn-copy');
+                if (btnCopy) {
+                    btnCopy.onclick = function() {
+                        const area = document.getElementById('code-output');
+                        if (area) {
+                            area.select();
+                            document.execCommand('copy');
+                            showToast("Код скопирован!");
+                        }
+                    };
+                }
+
+                render();
+            });
+        })();
+    </script>
+</body>
+</html>

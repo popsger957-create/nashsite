@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>НашСайт Премиум — Купить</title>
+    <style>
+        body {
+            background-image: url('418156561_f91c073d-c074-489e-8d96-cb92966c877b.svg');
+            color: white;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding-top: 20px; 
+        }
+
+        .premium-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid #b300ea;
+            border-radius: 20px;
+            padding: 40px;
+            width: 400px;
+            text-align: center;
+             /* Жесткая тень в стиле необрутализма */
+        }
+
+        h1 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            -webkit-text-stroke: 1px #b300ea; /* Обводка как ты хотел */
+            text-transform: uppercase;
+        }
+
+        .price-container {
+            margin-bottom: 30px;
+        }
+
+        .old-price {
+            text-decoration: line-through;
+            color: #ff0000;
+            font-size: 20px;
+            display: block;
+        }
+
+        .new-price {
+            font-size: 48px;
+            font-weight: bold;
+            color: #00ff00;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        .features {
+            text-align: left;
+            margin: 20px 0;
+            list-style: none;
+            padding: 0;
+        }
+
+        .features li {
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Символы из таблицы символов Windows */
+        .features li::before {
+            content: "✦"; 
+            color: #b300ea;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+        .buy-btn {
+            background: #b300ea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 100%;
+            transition: 0.3s;
+            border: 2px solid white;
+        }
+
+        .buy-btn:hover {
+            background: #b300ea;
+            
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="premium-card">
+        <h1>Премиум подписка на НашСайт</h1>
+        
+        <div class="price-container">
+            <span class="old-price">90 ₽ / мес</span>
+            <span class="new-price">10 000  ₽</span>
+            <p style="margin-top: 5px;">в месяц</p>
+        </div>
+
+        <ul class="features">
+            <li>Полное отключение рекламы</li>
+            <li>Доступ к сайту </li>
+            <li>Статус неопущеный</li>
+            <li>Музыка без ограничений</li>
+            <li>Скидка 0.01% на всё</li>
+            <li>Защита от сглаза (смайлик на лицо)</li>
+            <li>Доступ к серверу «kappa»</li>
+            <li>Увеличенный шанс в игре «набери 100»</li>
+            <li>Исправление плохих баллов по лабам (визуально)</li>
+            <li>Бесплатный воздух при просмотре сайта</li>
+            <li>Статус «Друг админа» (без обязательств)</li>
+            <li>Право называть сайт «нашим»</li>
+            <li>Возможность закрыть сайт в 15:45 по выходным </li>
+            <li>Личный смайлик клоуна рядом с ником</li>
+            <li>Право не здороваться с ботами</li>
+            <li>Возможность закрыть сайт, если стало скучно</li>
+            <li>Возможность кликать по логотипу</li>
+            <li>Право на эксклюзивный пиксель на главной странице</li>
+            <li>Доступ к версии сайта для микроволновок</li>
+            <li>Кэшбек на бесплатные советы от нейросети</li>
+            <li>Приоритетный доступ к серверу «kappa» через золотой SSH-туннель</li>
+            <li>Возможность менять погоду в Петрозаводске через консоль сайта</li>
+            <li>Скидка 99% на аренду воображаемой яхты в пустынях</li>
+            <li>Возможность перекрасить весь интернет в любой цвет (только в воображении)</li>
+            <li>Допуск к 13-му месяцу в году</li>
+            <li>Возможность использовать сэмпл храпа спящих родственников как основу для дрилла</li>
+            <li>Кэшбек 0% на все покупки в реальной жизни</li>
+            <li>Личный ползунок для регулировки уровня мирового океана (beta)</li>
+            <li>Право официально считать число Пи равным ровно трём </li>
+        </ul>
+
+     <button id="buyButton" class="buy-btn">КУПИТЬ СЕЙЧАС</button>
+    </div>
+<script>
+document.getElementById('buyButton').addEventListener('click', function() {
+    // Шаг 1: Первое радостное сообщение
+    alert('Запрос к банку');
+    
+    // Шаг 2: Внезапная ошибка
+    alert('ОЙ... ПРОИЗОШЛА КРИТИЧЕСКАЯ ОШИБКА!\n\n Транзакция была не произведена');
+    
+    // Шаг 3: Перенаправление с инструкцией
+    alert('Для ручного подтверждения платежа введите данные карты на нашем официальном зеркале: naeblohov.ru');
+    
+    // Перенос на сайт (сейчас стоит index.html, но ты можешь заменить на нужный адрес)
+    window.location.href = 'index.html'; 
+});
+</script>
+</body>
+</html>

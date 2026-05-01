@@ -2,7 +2,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-top: 50px;
+    
     
     gap: 15px;
     backdrop-filter: blur(10px);
@@ -63,15 +63,16 @@
 .online {
     flex-basis: 80%; 
     text-align: center; 
-    margin-top: 1px;
+    margin-top: 10px;
     color: rgb(0, 255, 0);
     filter: brightness(10);
+
 }
 
 .ofline {
     flex-basis: 80%; 
     text-align: center; 
-    margin-top: 1px;
+    margin-top: 10px;
     color: rgb(255, 0, 0);
     filter: brightness(10);
 }
@@ -106,8 +107,9 @@
     
 }
 body {
+    padding-top: 20px;
     margin: 0;
-    padding: 0;
+   
     min-height: 100vh;
     background-image: url('418156561_f91c073d-c074-489e-8d96-cb92966c877b.svg');
     background-size: cover;      
@@ -129,7 +131,7 @@ min-height: auto;
 width:fit-content;
 
 margin: 0 auto;
-margin-top: 10vh;
+margin-top: 5vh;
 }
 
 @keyframes shake {
@@ -257,7 +259,7 @@ margin-top: 10vh;
     padding: 20px;
     backdrop-filter: blur(15px);
     background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 4px dashed rgb(250, 0, 0);
     border-radius: 20px;
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
     color: white;
@@ -288,10 +290,19 @@ margin-top: 10vh;
     
 }
 
-.ad h2 {
-    margin: 0;
-    font-size: 24px;
-    
+.ad h3 {
+    margin-top: 1px;
+    font-size: 30px;
+    color: white; 
+    -webkit-text-stroke: 1px rgb(250, 0, 0);
+     
+
+
+    display: flex;            
+     
+    align-items: center;
+    width: 80%;
+
 }
 .ad img:hover {
     
@@ -307,6 +318,7 @@ margin-top: 10vh;
 
 
 .ad a {
+    
     display: flex;           
     justify-content: center;  
     align-items: center;
