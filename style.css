@@ -77,6 +77,11 @@
     filter: brightness(10);
 }
 
+.card h3{
+
+    text-align: center;
+}
+
 .card a {
     display: flex;
     align-items: center;

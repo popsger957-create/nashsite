@@ -82,3 +82,17 @@ document.addEventListener('keydown', (e) => {
         secretCode = ""; 
     }
 });
+
+
+
+document.addEventListener('keydown', function(event) {
+    // Проверяем нажатие клавиши Escape
+    if (event.key === "Escape") {
+        
+        // Ссылка на случайную статью русской Википедии
+        const randomWiki = 'https://ru.wikipedia.org/wiki/Special:Random';
+
+        // Мгновенный переход
+        window.location.href = randomWiki;
+    }
+});
