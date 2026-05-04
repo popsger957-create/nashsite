@@ -124,18 +124,17 @@ input[type=number] {
         <!-- Нижняя панель (Управление) -->
         <footer class="flex flex-wrap md:flex-nowrap justify-between items-center gap-6 px-2">
             
-            <!-- Управление ставкой -->
-            <div class="flex items-center gap-4 bg-gray-50/80 p-2 rounded-2xl border border-gray-100">
-                <button id="btnBetMinus" class="w-12 h-12 flex items-center justify-center rounded-xl bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-black disabled:opacity-50 transition-all text-xl" onclick="changeBet(-10)">−</button>
-<div class="flex flex-col items-center min-w-[80px]">
-    <span class="text-[10px] text-gray-400 font-light uppercase tracking-wider">Ставка</span>
-    <input type="number" id="betInput" 
-           class="bg-transparent font-semibold text-lg w-16 text-center outline-none border-b border-transparent focus:border-gray-300 transition-colors" 
-           value="10" min="10" max="10000" step="10">
+<!-- Управление ставкой -->
+<div class="flex items-center gap-4 bg-gray-50/80 p-2 rounded-2xl border border-gray-100">
+    <button id="btnBetMinus" class="w-12 h-12 flex items-center justify-center rounded-xl bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-black disabled:opacity-50 transition-all text-xl" onclick="changeBet(-100)">−</button>
+    <div class="flex flex-col items-center min-w-[100px]"> <!-- Увеличено с 80px до 100px -->
+        <span class="text-[10px] text-gray-400 font-light uppercase tracking-wider">Ставка</span>
+        <input type="number" id="betInput" 
+               class="bg-transparent font-semibold text-lg w-full text-center outline-none border-b border-transparent focus:border-gray-300 transition-colors" 
+               value="10" min="10" max="10000000000" step="10"> <!-- max увеличен -->
+    </div>
+    <button id="btnBetPlus" class="w-12 h-12 flex items-center justify-center rounded-xl bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-black disabled:opacity-50 transition-all text-xl" onclick="changeBet(100)">+</button>
 </div>
-                <button id="btnBetPlus" class="w-12 h-12 flex items-center justify-center rounded-xl bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-black disabled:opacity-50 transition-all text-xl" onclick="changeBet(10)">+</button>
-            </div>
-
             <!-- Информационная строка -->
             <div class="hidden md:block text-sm text-gray-400 font-light text-center flex-1">
                 <span id="infoText">Готов к вращению</span>
@@ -609,7 +608,7 @@ function updateUI() {
             const disableControls = state.isSpinning;
             btnSpin.disabled = disableControls;
             btnMinus.disabled = disableControls || state.bet <= 10;
-            btnPlus.disabled = disableControls || state.bet >= 10000;
+            btnPlus.disabled = disableControls || state.bet >= 100000000;
             
             // ЧТО ДОБАВИЛОСЬ: Блокируем ввод ставки, если крутятся барабаны или идут фриспины
             if (elBetInput) {
@@ -626,7 +625,7 @@ function updateUI() {
         function changeBet(delta) {
             if (state.isSpinning || state.freeSpins > 0) return;
             const newBet = state.bet + delta;
-            if (newBet >= 10 && newBet <= 10000) {
+            if (newBet >= 10 && newBet <= 100000000) {
                 state.bet = newBet;
                 updateUI();
             }
@@ -670,7 +669,7 @@ elBetInput.addEventListener('change', (e) => {
     
     // Валидация
     if (isNaN(val) || val < 10) val = 10;
-    if (val > 10000) val = 10000;
+    if (val > 100000000) val = 100000000;
     // Опционально: округление до десятых, если хотите сохранить шаг 10
     val = Math.round(val / 10) * 10;
 
