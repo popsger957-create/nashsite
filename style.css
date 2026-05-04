@@ -537,7 +537,38 @@ z-index: 9999;
 
 
 
+.site-footer {
+  
+  color: white;
+  text-align: center;
+  box-sizing: border-box;
+  width: 100%;
+  backdrop-filter: blur(10px);
+background: rgba(255, 255, 255, 0.1);
+
+border: 1px solid rgba(255, 255, 255, 0.2);
 
 
+color: white;
+}
+
+.marquee-style {
+  display: block;
+  color: #ff0000; 
+  background-color: yellow;
+  padding: 2px 0;
+  font-weight: bold;
+ 
+  border-top: 2px solid #000;
+}
+
+.footer-content {
+  padding: 15px;
+  font-size: 14px;
+  letter-spacing: 1px;
+}
 
 
+.footer-content a {
+  cursor:url('138daa72d9b1259fcea4c2f9036f90f0.png'), pointer;
+}
