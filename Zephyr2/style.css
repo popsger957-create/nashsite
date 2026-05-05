@@ -1,0 +1,245 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-image: url("418156561_f91c073d-c074-489e-8d96-cb92966c877b.svg");
+    background-size: cover;
+    background-position: center;
+    padding: 20px;
+    gap: 20px;
+}
+
+
+.rightpannel, .chatbox {
+    background: rgba(255, 255, 255, 0.1); 
+    backdrop-filter: blur(20px);         
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.rightpannel {
+    width: 350px;
+    flex-shrink: 0;
+}
+
+.chatbox {
+    flex-grow: 1;
+}
+
+
+.curuser, .search-box {
+    height: 70px;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.2);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.curuser {
+    color: #ffffff; 
+    font-weight: 700;
+    font-size: 18px;
+    border-radius: 16px;
+    flex-shrink: 0;
+}
+
+
+.search-box {
+    gap: 12px;
+    border-radius: 16px;
+}
+
+.search-box img {
+    height: 40px;
+    transition: ease-in-out 0.3s;
+}
+
+.search-box img:hover {
+    transform: scale(1.2);
+    
+}
+
+.search {
+    flex-grow: 1;
+    height: 40px;
+    background: rgb(255, 255, 255);
+    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    transition: ease-in-out 0.3s;
+}
+
+.search input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #333;
+    font-size: 14px;
+    transition: ease-in-out 0.3s;
+}
+
+.search input::placeholder {
+    color: #888;
+}
+.search-btn{
+       height: 40px;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+    padding: 0 12px;
+    color: #333;
+    outline: none;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: ease-in-out 0.3s; 
+}
+
+.search-btn:hover{
+transform: scale(1.2); 
+
+}
+
+
+
+
+.contacts-container, .messages {
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+
+.message {
+    height: 85px;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.2);
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    gap: 15px;
+    border-radius: 16px;
+    flex-shrink: 0;
+}
+
+.send-btn {
+    height: 48px;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+    padding: 0 20px;
+    color: #333;
+    outline: none;
+    font-size: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: ease-in-out 0.3s;
+}
+
+.send-btn:hover {
+        transform: scale(1.2);
+}
+
+ 
+
+
+.message input {
+    flex-grow: 1;  
+    width: 100%;
+    height: 48px;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+    padding: 0 20px;
+    color: #333;
+    outline: none;
+    font-size: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+     transition: ease-in-out 0.3s;
+}
+
+.message input:focus {
+    border: 1px solid rgb(0, 0, 0);
+    transform: scaleY(1.2);
+}
+
+
+
+
+
+
+
+
+
+.curuser {
+    gap: 15px; 
+}
+
+.user-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    flex-shrink: 0;
+    overflow: hidden; 
+}
+
+.user-avatar img {
+    width: 100%;       
+    height: 100%;      
+    object-fit: cover; 
+    display: block;
+}
+
+
+
+
+
+
+
+
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+
+
+
+
+
+
+
+.messages {
+    flex-grow: 1;
+    overflow-y: auto; /* прокрутка появится только здесь */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px;
+    /* Убедись, что нет свойств, которые могут его растянуть */
+}

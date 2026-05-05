@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zephyr</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+
+
+
+<div id="login-overlay" style="
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(0,0,0,0.8); backdrop-filter: blur(20px);
+    display: flex; justify-content: center; align-items: center; z-index: 1000;">
+    <div style="background: rgba(255,255,255,0.1); padding: 40px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.2); text-align: center;">
+        <h2 style="color: white; margin-bottom: 20px; font-family: sans-serif;">Как тебя зовут?</h2>
+        <input type="text" id="nickname-input" placeholder="Твой ник" style="
+            padding: 12px; border-radius: 12px; border: none; outline: none; width: 200px; font-size: 16px;">
+        <button id="start-chat" style="
+            padding: 12px 20px; margin-left: 10px; border-radius: 12px; border: none; 
+            background: #4B0082; color: white; cursor: pointer; font-weight: bold;">Войти</button>
+    </div>
+</div>
+
+
+
+
+
+
+    <div class="rightpannel">
+        <div class="search-box">
+            <img src="Group 2.png" alt="">
+            
+            <div class="search"><input placeholder="Поиск" type="text"></div>
+            <button class="search-btn">ϙ</button>
+        </div>
+        
+        <div class="contacts-container"></div>
+
+    </div>
+
+    <div class="chatbox">
+        <div class="curuser">
+            <div class="user-avatar">
+                <img src="ava.jpg" alt="">
+            </div>
+            <span>имя фамилия</span>
+
+        </div>
+        <div class="messages">
+
+        </div>
+
+        <div class="message">
+            
+            <input placeholder="Сообщение" type="text">
+            <button class="send-btn">▶</button>
+        </div>
+    </div>
+
+<script type="module">
+  // 1. Подключаем необходимые модули Firebase
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
+  import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+
+  // 2. Твой конфиг (на основе твоих скриншотов image_e3ebd8.jpg и image_dc3c51.jpg)
+  const firebaseConfig = {
+    apiKey: "AIzaSyCnNZCTi-1cyZiyG8b_OH9ssriKbn7gpJY",
+    authDomain: "zephyr-messenger-866c1.firebaseapp.com",
+    projectId: "zephyr-messenger-866c1",
+    storageBucket: "zephyr-messenger-866c1.firebasestorage.app",
+    messagingSenderId: "421775818303",
+    appId: "1:421775818303:web:71a6e3ba26c13ff9ed028a"
+  };
+
+  // 3. Инициализация
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // 4. Элементы интерфейса
+  const input = document.querySelector('.message input');
+  const btn = document.querySelector('.send-btn');
+  const messagesDiv = document.querySelector('.messages');
+  const userDisplay = document.querySelector('.curuser span');
+  
+  // Элементы окна входа (убедись, что добавил HTML из предыдущего шага)
+  const overlay = document.getElementById('login-overlay');
+  const nickInput = document.getElementById('nickname-input');
+  const startBtn = document.getElementById('start-chat');
+
+  // --- ЛОГИКА ВХОДА ---
+  let currentNickname = localStorage.getItem('zephyr-nick');
+
+  if (currentNickname) {
+    overlay.style.display = 'none';
+    
+  }
+
+  startBtn.onclick = () => {
+    const nick = nickInput.value.trim();
+    if (nick) {
+      localStorage.setItem('zephyr-nick', nick);
+      currentNickname = nick;
+      overlay.style.display = 'none';
+      userDisplay.innerText = nick;
+    }
+  };
+
+  // --- ЛОГИКА ОТПРАВКИ ---
+  async function handleSend() {
+    const text = input.value.trim();
+    if (text !== "" && currentNickname) {
+      try {
+        await addDoc(collection(db, "chats"), {
+          text: text,
+          user: currentNickname,
+          time: serverTimestamp()
+        });
+        input.value = ""; // Очистка поля
+      } catch (e) {
+        console.error("Ошибка отправки: ", e);
+      }
+    }
+  }
+
+  // Отправка по кнопке
+  btn.onclick = handleSend;
+
+  // Отправка по Enter
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSend();
+    }
+  });
+
+  // --- ПОЛУЧЕНИЕ СООБЩЕНИЙ (REAL-TIME) ---
+  const q = query(collection(db, "chats"), orderBy("time", "asc"));
+  
+  onSnapshot(q, (snapshot) => {
+    messagesDiv.innerHTML = ""; // Очистка контейнера перед рендером
+    
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const msgWrapper = document.createElement('div');
+      
+      // Проверяем, чье это сообщение, чтобы выровнять (свое или чужое)
+      const isMine = data.user === currentNickname;
+      
+      msgWrapper.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        align-items: ${isMine ? 'flex-end' : 'flex-start'};
+        margin: 10px;
+      `;
+
+      const msgBubble = document.createElement('div');
+      msgBubble.style.cssText = `
+        background: ${isMine ? 'rgba(75, 0, 130, 0.4)' : 'rgba(255, 255, 255, 0.1)'};
+        backdrop-filter: blur(10px);
+        padding: 12px 16px;
+        border-radius: 18px;
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        max-width: 70%;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      `;
+      
+      msgBubble.innerHTML = `
+        <small style="display:block; opacity:0.5; font-size:10px; margin-bottom:4px;">${data.user}</small>
+        <span style="font-size: 15px;">${data.text}</span>
+      `;
+      
+      msgWrapper.appendChild(msgBubble);
+      messagesDiv.appendChild(msgWrapper);
+    });
+
+    // Автопрокрутка вниз
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  });
+</script>
+</body>
+</html>
