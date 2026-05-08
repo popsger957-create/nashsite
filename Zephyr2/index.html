@@ -42,6 +42,10 @@
     </div>
     <div class="messages"></div>
 
+
+
+    <button class="scroll-to-bottom" id="scrollToBottom">⬇</button>
+
     <div class="message">
         
         <input type="file" id="file-input" accept="image/*" style="display: none;">
@@ -85,6 +89,7 @@
   const userDisplay = document.querySelector('.curuser span');
   const fileInput = document.getElementById('file-input');
   const attachBtn = document.getElementById('attach-btn');
+  const scrollToBottomBtn = document.getElementById('scrollToBottom');
   
   // Переменная для хранения выбранного файла
   let selectedFile = null;
@@ -114,22 +119,12 @@
 
   // --- ЛОГИКА ВЫБОРА ФАЙЛА ---
   attachBtn.onclick = () => {
-    fileInput.click(); // Открываем диалог выбора файла
+    fileInput.click();
   };
 
   fileInput.onchange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Проверка размера файла (лимит Firestore — 1МБ)
-      const maxSize = 1 * 1024 * 1024; // 1 МБ в байтах
-      
-      if (file.size > maxSize) {
-        alert('Ошибка: Размер файла превышает 1 МБ. Пожалуйста, выберите изображение меньшего размера.');
-        fileInput.value = ''; // Очищаем input
-        selectedFile = null;
-        return;
-      }
-      
       // Проверка, что это изображение
       if (!file.type.startsWith('image/')) {
         alert('Ошибка: Пожалуйста, выберите изображение.');
@@ -140,7 +135,7 @@
       
       selectedFile = file;
       
-      // Визуальная обратная связь — меняем иконку кнопки
+      // Визуальная обратная связь
       attachBtn.textContent = '✅';
       setTimeout(() => {
         attachBtn.textContent = '📎';
@@ -148,13 +143,73 @@
     }
   };
 
-  // --- КОНВЕРТАЦИЯ ФАЙЛА В BASE64 ---
-  function convertFileToBase64(file) {
+  // --- СЖАТИЕ И КОНВЕРТАЦИЯ ИЗОБРАЖЕНИЯ В BASE64 ---
+  function compressAndConvertToBase64(file, maxWidth = 800, quality = 0.7) {
     return new Promise((resolve, reject) => {
+      if (!file.type.startsWith('image/')) {
+        reject(new Error('Файл не является изображением'));
+        return;
+      }
+
       const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        const img = new Image();
+        
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Если изображение больше максимальной ширины — сжимаем
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Конвертируем в base64 с указанным качеством
+          let base64 = canvas.toDataURL('image/jpeg', quality);
+          
+          // Проверяем финальный размер
+          let sizeInMB = (base64.length * 3) / 4 / (1024 * 1024);
+          console.log(`Размер после сжатия: ${sizeInMB.toFixed(3)} МБ`);
+          
+          // Если всё еще больше 900 КБ — сжимаем сильнее
+          if (sizeInMB > 0.9) {
+            const newQuality = quality * 0.5;
+            base64 = canvas.toDataURL('image/jpeg', newQuality);
+            sizeInMB = (base64.length * 3) / 4 / (1024 * 1024);
+            console.log(`Повторное сжатие: ${sizeInMB.toFixed(3)} МБ`);
+          }
+          
+          // Если всё еще большое — уменьшаем разрешение
+          if (sizeInMB > 0.9) {
+            const smallCanvas = document.createElement('canvas');
+            const ratio = 400 / img.width;
+            smallCanvas.width = 400;
+            smallCanvas.height = img.height * ratio;
+            const smallCtx = smallCanvas.getContext('2d');
+            smallCtx.drawImage(img, 0, 0, smallCanvas.width, smallCanvas.height);
+            base64 = smallCanvas.toDataURL('image/jpeg', 0.3);
+            sizeInMB = (base64.length * 3) / 4 / (1024 * 1024);
+            console.log(`Экстренное сжатие: ${sizeInMB.toFixed(3)} МБ`);
+          }
+          
+          resolve(base64);
+        };
+        
+        img.onerror = () => reject(new Error('Ошибка загрузки изображения'));
+        img.src = e.target.result;
+      };
+      
+      reader.onerror = () => reject(new Error('Ошибка чтения файла'));
       reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = (error) => reject(error);
     });
   }
 
@@ -178,13 +233,16 @@
         messageData.text = text;
       }
       
-      // Конвертируем и добавляем изображение, если оно выбрано
+      // Сжимаем и добавляем изображение, если оно выбрано
       if (selectedFile) {
         try {
-          const base64Image = await convertFileToBase64(selectedFile);
+          console.log('Исходный размер файла:', (selectedFile.size / 1024 / 1024).toFixed(2), 'МБ');
+          const base64Image = await compressAndConvertToBase64(selectedFile);
+          const finalSize = (base64Image.length * 3) / 4 / (1024 * 1024);
+          console.log('Финальный размер для отправки:', finalSize.toFixed(3), 'МБ');
           messageData.image = base64Image;
         } catch (error) {
-          console.error("Ошибка конвертации изображения:", error);
+          console.error("Ошибка сжатия изображения:", error);
           alert('Ошибка при обработке изображения. Попробуйте другое.');
           return;
         }
@@ -200,11 +258,7 @@
       
     } catch (e) {
       console.error("Ошибка отправки: ", e);
-      
-      // Специфичная проверка на превышение размера документа
-      if (e.code === 'resource-exhausted' || e.message.includes('maximum allowed size')) {
-        alert('Ошибка: Сообщение слишком большое. Попробуйте уменьшить размер изображения.');
-      }
+      alert('Ошибка при отправке. Попробуйте ещё раз.');
     }
   }
 
@@ -219,17 +273,52 @@
     }
   });
 
+  // --- ФОРМАТИРОВАНИЕ ВРЕМЕНИ ---
+  function formatTime(timestamp) {
+    if (!timestamp) return '';
+    
+    const date = timestamp.toDate();
+    const now = new Date();
+    const diff = now - date;
+    
+    // Если сообщение сегодня
+    if (diff < 24 * 60 * 60 * 1000 && date.getDate() === now.getDate()) {
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    // Если вчера
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (date.getDate() === yesterday.getDate() && 
+        date.getMonth() === yesterday.getMonth() && 
+        date.getFullYear() === yesterday.getFullYear()) {
+        return 'Вчера ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    // Если в этом году
+    if (date.getFullYear() === now.getFullYear()) {
+        return date.toLocaleDateString([], { day: 'numeric', month: 'short' }) + 
+               ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    // Если в другом году
+    return date.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' }) + 
+           ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
   // --- ПОЛУЧЕНИЕ СООБЩЕНИЙ (REAL-TIME) ---
   const q = query(collection(db, "chats"), orderBy("time", "asc"));
   
   onSnapshot(q, (snapshot) => {
-    messagesDiv.innerHTML = ""; // Очистка контейнера перед рендером
+    // Сохраняем текущую позицию прокрутки
+    const wasAtBottom = messagesDiv.scrollHeight - messagesDiv.scrollTop - messagesDiv.clientHeight < 100;
+    
+    messagesDiv.innerHTML = "";
     
     snapshot.forEach(doc => {
       const data = doc.data();
       const msgWrapper = document.createElement('div');
       
-      // Проверяем, чье это сообщение
       const isMine = data.user === currentNickname;
       
       msgWrapper.style.cssText = `
@@ -251,7 +340,6 @@
         box-shadow: 0 4px 15px rgba(0,0,0,0.1);
       `;
       
-      // Формируем содержимое сообщения
       let messageContent = `
         <small style="display:block; opacity:0.5; font-size:10px; margin-bottom:4px;">${data.user}</small>
       `;
@@ -265,7 +353,8 @@
             border-radius: 12px;
             margin-bottom: 8px;
             display: block;
-          " alt="Отправленное изображение">
+            cursor: pointer;
+          " alt="Отправленное изображение" onclick="window.open(this.src)">
         `;
       }
       
@@ -274,14 +363,43 @@
         messageContent += `<span style="font-size: 15px;">${data.text}</span>`;
       }
       
+      // Добавляем время сообщения
+      if (data.time) {
+        const timeString = formatTime(data.time);
+        messageContent += `<span class="message-time">${timeString}</span>`;
+      }
+      
       msgBubble.innerHTML = messageContent;
       
       msgWrapper.appendChild(msgBubble);
       messagesDiv.appendChild(msgWrapper);
     });
 
-    // Автопрокрутка вниз
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    // Автопрокрутка, только если пользователь был внизу
+    if (wasAtBottom) {
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+  });
+
+  // --- КНОПКА "ВЕРНУТЬСЯ ВНИЗ" ---
+  messagesDiv.addEventListener('scroll', () => {
+    const scrollPosition = messagesDiv.scrollTop;
+    const maxScroll = messagesDiv.scrollHeight - messagesDiv.clientHeight;
+    const distanceFromBottom = maxScroll - scrollPosition;
+    
+    if (distanceFromBottom > 150) {
+      scrollToBottomBtn.style.display = 'flex';
+    } else {
+      scrollToBottomBtn.style.display = 'none';
+    }
+  });
+
+  scrollToBottomBtn.addEventListener('click', () => {
+    messagesDiv.scrollTo({
+      top: messagesDiv.scrollHeight,
+      behavior: 'smooth'
+    });
+    scrollToBottomBtn.style.display = 'none';
   });
 </script>
 </body>

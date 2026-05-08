@@ -262,3 +262,238 @@ transform: scale(1.2);
 .attach-btn:hover {
     transform: scale(1.2);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ==================== АДАПТАЦИЯ ПОД МОБИЛЬНЫЕ УСТРОЙСТВА ==================== */
+
+/* Планшеты (до 1024px) */
+@media (max-width: 1024px) {
+    body {
+        padding: 10px;
+        gap: 10px;
+    }
+    
+    .rightpannel {
+        width: 250px;
+    }
+}
+
+/* Мобильные устройства (до 768px) */
+@media (max-width: 768px) {
+    body {
+        flex-direction: column;
+        padding: 10px;
+        gap: 10px;
+        height: 100dvh; /* Для мобильных браузеров с динамической высотой */
+    }
+    
+    .rightpannel {
+        display: none; /* Скрываем боковую панель на мобильных */
+    }
+    
+    .chatbox {
+        flex-grow: 1;
+        border-radius: 20px;
+        height: 100%;
+    }
+    
+    .curuser {
+        height: 60px;
+        font-size: 16px;
+        padding: 0 15px;
+        border-radius: 12px;
+    }
+    
+    .user-avatar {
+        width: 38px;
+        height: 38px;
+    }
+    
+    .messages {
+        padding: 15px;
+        gap: 8px;
+    }
+    
+    .message {
+        height: 70px;
+        padding: 0 10px;
+        gap: 8px;
+        border-radius: 12px;
+    }
+    
+    .message input {
+        height: 42px;
+        padding: 0 12px;
+        font-size: 14px;
+        border-radius: 12px;
+    }
+    
+    .attach-btn {
+        font-size: 18px;
+        padding: 8px;
+        border-radius: 12px;
+    }
+    
+    .send-btn {
+        height: 42px;
+        padding: 0 15px;
+        font-size: 18px;
+        border-radius: 12px;
+    }
+    
+    /* Уменьшаем max-width сообщений */
+    .messages div[style] {
+        max-width: 85% !important;
+    }
+}
+
+/* Маленькие мобильные (до 480px) */
+@media (max-width: 480px) {
+    body {
+        padding: 5px;
+        gap: 5px;
+    }
+    
+    .chatbox {
+        border-radius: 16px;
+    }
+    
+    .curuser {
+        height: 55px;
+        font-size: 15px;
+        padding: 0 10px;
+        border-radius: 10px;
+    }
+    
+    .user-avatar {
+        width: 35px;
+        height: 35px;
+    }
+    
+    .messages {
+        padding: 10px;
+        gap: 6px;
+    }
+    
+    .message {
+        height: 60px;
+        padding: 0 8px;
+        gap: 6px;
+        border-radius: 10px;
+    }
+    
+    .message input {
+        height: 38px;
+        padding: 0 10px;
+        font-size: 13px;
+        border-radius: 10px;
+    }
+    
+    .attach-btn {
+        font-size: 16px;
+        padding: 6px;
+        border-radius: 10px;
+    }
+    
+    .send-btn {
+        height: 38px;
+        padding: 0 12px;
+        font-size: 16px;
+        border-radius: 10px;
+    }
+    
+    #login-overlay > div {
+        padding: 25px !important;
+        border-radius: 16px !important;
+    }
+    
+    #login-overlay h2 {
+        font-size: 18px !important;
+    }
+    
+    #nickname-input {
+        width: 160px !important;
+        font-size: 14px !important;
+        padding: 10px !important;
+    }
+    
+    #start-chat {
+        padding: 10px 16px !important;
+        font-size: 14px !important;
+        margin-left: 5px !important;
+    }
+}
+
+/* Исправление для мобильных браузеров с динамической панелью */
+@supports (height: 100dvh) {
+    @media (max-width: 768px) {
+        body {
+            height: 100dvh;
+        }
+    }
+}
+
+
+.message-time {
+    display: block;
+    font-size: 10px;
+    opacity: 0.5;
+    margin-top: 4px;
+    text-align: right;
+}
+
+
+
+/* Кнопка "Вернуться вниз" */
+.scroll-to-bottom {
+    position: absolute;
+    bottom: 100px;
+    right: 30px;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.scroll-to-bottom:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.scroll-to-bottom:active {
+    transform: translateY(0);
+}
