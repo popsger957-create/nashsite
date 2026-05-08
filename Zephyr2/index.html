@@ -5,402 +5,289 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zephyr</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%234B0082'/><text x='50' y='72' font-size='65' text-anchor='middle' font-family='Arial' font-weight='bold' fill='white'>Z</text></svg>">
 </head>
 <body>
 
-<div id="login-overlay" style="
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-    background: rgba(0,0,0,0.8); backdrop-filter: blur(20px);
-    display: flex; justify-content: center; align-items: center; z-index: 1000;">
+<div id="login-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(20px); display: flex; justify-content: center; align-items: center; z-index: 1000;">
     <div style="background: rgba(255,255,255,0.1); padding: 40px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.2); text-align: center;">
         <h2 style="color: white; margin-bottom: 20px; font-family: sans-serif;">Как тебя зовут?</h2>
-        <input type="text" id="nickname-input" placeholder="Твой ник" style="
-            padding: 12px; border-radius: 12px; border: none; outline: none; width: 200px; font-size: 16px;">
-        <button id="start-chat" style="
-            padding: 12px 20px; margin-left: 10px; border-radius: 12px; border: none; 
-            background: #4B0082; color: white; cursor: pointer; font-weight: bold;">Войти</button>
+        <input type="text" id="nickname-input" placeholder="Твой ник" style="padding: 12px; border-radius: 12px; border: none; outline: none; width: 200px; font-size: 16px;">
+        <button id="start-chat" style="padding: 12px 20px; margin-left: 10px; border-radius: 12px; border: none; background: #4B0082; color: white; cursor: pointer; font-weight: bold;">Войти</button>
     </div>
 </div>
 
 <div class="rightpannel">
     <div class="search-box">
         <img src="Group 2.png" alt="">
-        
         <div class="search"><input placeholder="Поиск" type="text"></div>
         <button class="search-btn">ϙ</button>
     </div>
-    
     <div class="contacts-container"></div>
 </div>
 
 <div class="chatbox">
     <div class="curuser">
-        <div class="user-avatar">
-            <img src="ava.jpg" alt="">
-        </div>
+        <div class="user-avatar"><img src="ava.jpg" alt=""></div>
         <span>имя фамилия</span>
+        <span id="msg-total" style="font-size: 12px; opacity: 0.6; color: white;"></span>
     </div>
     <div class="messages"></div>
-
-
-
     <button class="scroll-to-bottom" id="scrollToBottom">⬇</button>
-
+    <div id="image-preview" style="display:none; padding: 10px 20px; background: rgba(255,255,255,0.05); border-top: 1px solid rgba(255,255,255,0.1);">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <img id="preview-img" src="" style="max-height:60px; max-width:60px; border-radius:10px; object-fit:cover;">
+            <span id="preview-name" style="color:white; font-size:13px; flex-grow:1;"></span>
+            <button id="cancel-preview" style="background:none; border:none; color:white; font-size:18px; cursor:pointer;">✕</button>
+        </div>
+    </div>
     <div class="message">
-        
         <input type="file" id="file-input" accept="image/*" style="display: none;">
-        
-        
-        
-        
         <input placeholder="Сообщение" type="text" id="message-input">
-
-
         <button class="attach-btn" id="attach-btn">📎</button>
-        
-        <!-- Кнопка отправки -->
         <button class="send-btn">▶</button>
     </div>
 </div>
 
 <script type="module">
-  // 1. Подключаем необходимые модули Firebase
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
-  // 2. Твой конфиг
-  const firebaseConfig = {
+const firebaseConfig = {
     apiKey: "AIzaSyCnNZCTi-1cyZiyG8b_OH9ssriKbn7gpJY",
     authDomain: "zephyr-messenger-866c1.firebaseapp.com",
     projectId: "zephyr-messenger-866c1",
     storageBucket: "zephyr-messenger-866c1.firebasestorage.app",
     messagingSenderId: "421775818303",
     appId: "1:421775818303:web:71a6e3ba26c13ff9ed028a"
-  };
+};
 
-  // 3. Инициализация
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-  // 4. Элементы интерфейса
-  const input = document.getElementById('message-input');
-  const btn = document.querySelector('.send-btn');
-  const messagesDiv = document.querySelector('.messages');
-  const userDisplay = document.querySelector('.curuser span');
-  const fileInput = document.getElementById('file-input');
-  const attachBtn = document.getElementById('attach-btn');
-  const scrollToBottomBtn = document.getElementById('scrollToBottom');
-  
-  // Переменная для хранения выбранного файла
-  let selectedFile = null;
-  
-  // Элементы окна входа
-  const overlay = document.getElementById('login-overlay');
-  const nickInput = document.getElementById('nickname-input');
-  const startBtn = document.getElementById('start-chat');
+const input = document.getElementById('message-input');
+const btn = document.querySelector('.send-btn');
+const messagesDiv = document.querySelector('.messages');
+const userDisplay = document.querySelector('.curuser span');
+const fileInput = document.getElementById('file-input');
+const attachBtn = document.getElementById('attach-btn');
+const scrollToBottomBtn = document.getElementById('scrollToBottom');
+const overlay = document.getElementById('login-overlay');
+const nickInput = document.getElementById('nickname-input');
+const startBtn = document.getElementById('start-chat');
 
-  // --- ЛОГИКА ВХОДА ---
-  let currentNickname = localStorage.getItem('zephyr-nick');
+let selectedFile = null;
+let currentNickname = localStorage.getItem('zephyr-nick');
 
-  if (currentNickname) {
+if (currentNickname) {
     overlay.style.display = 'none';
     userDisplay.innerText = currentNickname;
-  }
+}
 
-  startBtn.onclick = () => {
+startBtn.onclick = () => {
     const nick = nickInput.value.trim();
     if (nick) {
-      localStorage.setItem('zephyr-nick', nick);
-      currentNickname = nick;
-      overlay.style.display = 'none';
-      userDisplay.innerText = nick;
+        localStorage.setItem('zephyr-nick', nick);
+        currentNickname = nick;
+        overlay.style.display = 'none';
+        userDisplay.innerText = nick;
     }
-  };
+};
 
-  // --- ЛОГИКА ВЫБОРА ФАЙЛА ---
-  attachBtn.onclick = () => {
-    fileInput.click();
-  };
+attachBtn.onclick = () => fileInput.click();
 
-  fileInput.onchange = (e) => {
+fileInput.onchange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      // Проверка, что это изображение
-      if (!file.type.startsWith('image/')) {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
         alert('Ошибка: Пожалуйста, выберите изображение.');
         fileInput.value = '';
         selectedFile = null;
         return;
-      }
-      
-      selectedFile = file;
-      
-      // Визуальная обратная связь
-      attachBtn.textContent = '✅';
-      setTimeout(() => {
-        attachBtn.textContent = '📎';
-      }, 1000);
     }
-  };
+    selectedFile = file;
+    attachBtn.classList.add('has-file');
+    const preview = document.getElementById('image-preview');
+    const previewImg = document.getElementById('preview-img');
+    const previewName = document.getElementById('preview-name');
+    previewImg.src = URL.createObjectURL(file);
+    previewName.textContent = file.name.length > 25 ? file.name.substring(0, 25) + '...' : file.name;
+    preview.style.display = 'block';
+    attachBtn.textContent = '✅';
+    setTimeout(() => attachBtn.textContent = '📎', 1000);
+};
 
-  // --- СЖАТИЕ И КОНВЕРТАЦИЯ ИЗОБРАЖЕНИЯ В BASE64 ---
-  function compressAndConvertToBase64(file, maxWidth = 800, quality = 0.7) {
+document.getElementById('cancel-preview').onclick = () => {
+    selectedFile = null;
+    fileInput.value = '';
+    attachBtn.classList.remove('has-file');
+    document.getElementById('image-preview').style.display = 'none';
+    document.getElementById('preview-img').src = '';
+};
+
+function compressAndConvertToBase64(file, maxW = 800, qual = 0.7) {
     return new Promise((resolve, reject) => {
-      if (!file.type.startsWith('image/')) {
-        reject(new Error('Файл не является изображением'));
-        return;
-      }
-
-      const reader = new FileReader();
-      
-      reader.onload = (e) => {
-        const img = new Image();
-        
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          
-          // Если изображение больше максимальной ширины — сжимаем
-          if (width > maxWidth) {
-            height = (height * maxWidth) / width;
-            width = maxWidth;
-          }
-          
-          canvas.width = width;
-          canvas.height = height;
-          
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-          
-          // Конвертируем в base64 с указанным качеством
-          let base64 = canvas.toDataURL('image/jpeg', quality);
-          
-          // Проверяем финальный размер
-          let sizeInMB = (base64.length * 3) / 4 / (1024 * 1024);
-          console.log(`Размер после сжатия: ${sizeInMB.toFixed(3)} МБ`);
-          
-          // Если всё еще больше 900 КБ — сжимаем сильнее
-          if (sizeInMB > 0.9) {
-            const newQuality = quality * 0.5;
-            base64 = canvas.toDataURL('image/jpeg', newQuality);
-            sizeInMB = (base64.length * 3) / 4 / (1024 * 1024);
-            console.log(`Повторное сжатие: ${sizeInMB.toFixed(3)} МБ`);
-          }
-          
-          // Если всё еще большое — уменьшаем разрешение
-          if (sizeInMB > 0.9) {
-            const smallCanvas = document.createElement('canvas');
-            const ratio = 400 / img.width;
-            smallCanvas.width = 400;
-            smallCanvas.height = img.height * ratio;
-            const smallCtx = smallCanvas.getContext('2d');
-            smallCtx.drawImage(img, 0, 0, smallCanvas.width, smallCanvas.height);
-            base64 = smallCanvas.toDataURL('image/jpeg', 0.3);
-            sizeInMB = (base64.length * 3) / 4 / (1024 * 1024);
-            console.log(`Экстренное сжатие: ${sizeInMB.toFixed(3)} МБ`);
-          }
-          
-          resolve(base64);
+        if (!file.type.startsWith('image/')) return reject(new Error('Не изображение'));
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const getBase64 = (w, q) => {
+                    const c = document.createElement('canvas');
+                    c.width = w;
+                    c.height = img.height * (w / img.width);
+                    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+                    return c.toDataURL('image/jpeg', q);
+                };
+                let base64 = getBase64(maxW, qual);
+                if (base64.length / 1024 / 1024 > 0.9) base64 = getBase64(400, 0.3);
+                resolve(base64);
+            };
+            img.onerror = () => reject(new Error('Ошибка'));
+            img.src = e.target.result;
         };
-        
-        img.onerror = () => reject(new Error('Ошибка загрузки изображения'));
-        img.src = e.target.result;
-      };
-      
-      reader.onerror = () => reject(new Error('Ошибка чтения файла'));
-      reader.readAsDataURL(file);
+        reader.onerror = () => reject(new Error('Ошибка'));
+        reader.readAsDataURL(file);
     });
-  }
+}
 
-  // --- ЛОГИКА ОТПРАВКИ ---
-  async function handleSend() {
+async function handleSend() {
     const text = input.value.trim();
-    
-    // Проверяем, есть ли что отправлять
-    if ((text === "" && !selectedFile) || !currentNickname) {
-      return;
-    }
-    
-    try {
-      const messageData = {
-        user: currentNickname,
-        time: serverTimestamp()
-      };
-      
-      // Добавляем текст, если он есть
-      if (text !== "") {
-        messageData.text = text;
-      }
-      
-      // Сжимаем и добавляем изображение, если оно выбрано
-      if (selectedFile) {
-        try {
-          console.log('Исходный размер файла:', (selectedFile.size / 1024 / 1024).toFixed(2), 'МБ');
-          const base64Image = await compressAndConvertToBase64(selectedFile);
-          const finalSize = (base64Image.length * 3) / 4 / (1024 * 1024);
-          console.log('Финальный размер для отправки:', finalSize.toFixed(3), 'МБ');
-          messageData.image = base64Image;
-        } catch (error) {
-          console.error("Ошибка сжатия изображения:", error);
-          alert('Ошибка при обработке изображения. Попробуйте другое.');
-          return;
+    if ((text === "" && !selectedFile) || !currentNickname) return;
+
+    if (text === '/rain' || text === '/дождь') {
+        const emojis = ['😂','🔥','💜','✨','🌟','💀','🎉','💩','❤️','🫶','💯','🍆','🗿','💋','🤡'];
+        for (let i = 0; i < 40; i++) {
+            setTimeout(() => {
+                const el = document.createElement('div');
+                el.className = 'emoji-rain';
+                el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+                el.style.left = Math.random() * 100 + '%';
+                el.style.animationDuration = (2 + Math.random() * 3) + 's';
+                el.style.fontSize = (20 + Math.random() * 40) + 'px';
+                document.body.appendChild(el);
+                setTimeout(() => el.remove(), 4000);
+            }, i * 80);
         }
-      }
-      
-      await addDoc(collection(db, "chats"), messageData);
-      
-      // Очистка после успешной отправки
-      input.value = "";
-      fileInput.value = "";
-      selectedFile = null;
-      attachBtn.textContent = '📎';
-      
+        input.value = '';
+        return;
+    }
+
+    try {
+        const messageData = { user: currentNickname, time: serverTimestamp() };
+        if (text !== "") messageData.text = text;
+        if (selectedFile) {
+            const base64Image = await compressAndConvertToBase64(selectedFile);
+            messageData.image = base64Image;
+        }
+        await addDoc(collection(db, "chats"), messageData);
+        setTimeout(() => messagesDiv.scrollTo({ top: messagesDiv.scrollHeight, behavior: 'smooth' }), 100);
+        input.value = "";
+        fileInput.value = "";
+        selectedFile = null;
+        attachBtn.textContent = '📎';
+        attachBtn.classList.remove('has-file');
+        document.getElementById('image-preview').style.display = 'none';
+        document.getElementById('preview-img').src = '';
     } catch (e) {
-      console.error("Ошибка отправки: ", e);
-      alert('Ошибка при отправке. Попробуйте ещё раз.');
+        console.error("Ошибка отправки:", e);
+        alert('Ошибка при отправке.');
     }
-  }
+}
 
-  // Отправка по кнопке
-  btn.onclick = handleSend;
+btn.onclick = handleSend;
+input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); handleSend(); }
+});
 
-  // Отправка по Enter
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSend();
-    }
-  });
+function formatTime(ts) {
+    if (!ts) return '';
+    const d = ts.toDate(), n = new Date();
+    const opt = { hour: '2-digit', minute: '2-digit' };
+    if (d.toDateString() === n.toDateString()) return d.toLocaleTimeString([], opt);
+    const y = new Date(n); y.setDate(y.getDate() - 1);
+    if (d.toDateString() === y.toDateString()) return 'Вчера ' + d.toLocaleTimeString([], opt);
+    return d.toLocaleDateString([], { day: 'numeric', month: 'short' }) + ' ' + d.toLocaleTimeString([], opt);
+}
 
-  // --- ФОРМАТИРОВАНИЕ ВРЕМЕНИ ---
-  function formatTime(timestamp) {
-    if (!timestamp) return '';
-    
-    const date = timestamp.toDate();
-    const now = new Date();
-    const diff = now - date;
-    
-    // Если сообщение сегодня
-    if (diff < 24 * 60 * 60 * 1000 && date.getDate() === now.getDate()) {
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-    
-    // Если вчера
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    if (date.getDate() === yesterday.getDate() && 
-        date.getMonth() === yesterday.getMonth() && 
-        date.getFullYear() === yesterday.getFullYear()) {
-        return 'Вчера ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-    
-    // Если в этом году
-    if (date.getFullYear() === now.getFullYear()) {
-        return date.toLocaleDateString([], { day: 'numeric', month: 'short' }) + 
-               ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-    
-    // Если в другом году
-    return date.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' }) + 
-           ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  }
+function nickColor(nick) {
+    let h = 0;
+    for (let i = 0; i < nick.length; i++) h = nick.charCodeAt(i) + ((h << 5) - h);
+    return `hsl(${h % 360}, 70%, 75%)`;
+}
 
-  // --- ПОЛУЧЕНИЕ СООБЩЕНИЙ (REAL-TIME) ---
-  const q = query(collection(db, "chats"), orderBy("time", "asc"));
-  
-  onSnapshot(q, (snapshot) => {
-    // Сохраняем текущую позицию прокрутки
+function addDeleteHandler(bubble, id) {
+    bubble.addEventListener('contextmenu', async (e) => {
+        e.preventDefault();
+        if (confirm('Удалить сообщение?')) {
+            try { await deleteDoc(doc(db, "chats", id)); }
+            catch (err) { console.error(err); alert('Не удалось удалить'); }
+        }
+    });
+}
+
+const q = query(collection(db, "chats"), orderBy("time", "asc"));
+
+onSnapshot(q, (snapshot) => {
     const wasAtBottom = messagesDiv.scrollHeight - messagesDiv.scrollTop - messagesDiv.clientHeight < 100;
-    
     messagesDiv.innerHTML = "";
     
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const msgWrapper = document.createElement('div');
-      
-      const isMine = data.user === currentNickname;
-      
-      msgWrapper.style.cssText = `
-        display: flex;
-        flex-direction: column;
-        align-items: ${isMine ? 'flex-end' : 'flex-start'};
-        margin: 10px;
-      `;
-
-      const msgBubble = document.createElement('div');
-      msgBubble.style.cssText = `
-        background: ${isMine ? 'rgba(75, 0, 130, 0.4)' : 'rgba(255, 255, 255, 0.1)'};
-        backdrop-filter: blur(10px);
-        padding: 12px 16px;
-        border-radius: 18px;
-        color: white;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        max-width: 70%;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-      `;
-      
-      let messageContent = `
-        <small style="display:block; opacity:0.5; font-size:10px; margin-bottom:4px;">${data.user}</small>
-      `;
-      
-      // Добавляем изображение, если оно есть
-      if (data.image) {
-        messageContent += `
-          <img src="${data.image}" style="
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: 12px;
-            margin-bottom: 8px;
-            display: block;
-            cursor: pointer;
-          " alt="Отправленное изображение" onclick="window.open(this.src)">
-        `;
-      }
-      
-      // Добавляем текст, если он есть
-      if (data.text) {
-        messageContent += `<span style="font-size: 15px;">${data.text}</span>`;
-      }
-      
-      // Добавляем время сообщения
-      if (data.time) {
-        const timeString = formatTime(data.time);
-        messageContent += `<span class="message-time">${timeString}</span>`;
-      }
-      
-      msgBubble.innerHTML = messageContent;
-      
-      msgWrapper.appendChild(msgBubble);
-      messagesDiv.appendChild(msgWrapper);
+    snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const msgWrapper = document.createElement('div');
+        const isMine = data.user === currentNickname;
+        
+        msgWrapper.style.cssText = `display: flex; flex-direction: column; align-items: ${isMine ? 'flex-end' : 'flex-start'}; margin: 10px; animation: popIn 0.25s ease-out;`;
+        
+        const msgBubble = document.createElement('div');
+        msgBubble.style.cssText = `background: ${isMine ? 'rgba(75, 0, 130, 0.4)' : 'rgba(255, 255, 255, 0.1)'}; backdrop-filter: blur(10px); padding: 12px 16px; border-radius: 18px; color: white; border: 1px solid rgba(255, 255, 255, 0.2); max-width: 70%; box-shadow: 0 4px 15px rgba(0,0,0,0.1);`;
+        
+        let mc = `<small style="display:block; font-size:14px; margin-bottom:4px; color: ${nickColor(data.user)}; font-weight: bold;">${data.user}</small>`;
+        
+        if (data.image) {
+            const imgId = 'img-' + docSnap.id;
+            mc += `<img src="${data.image}" id="${imgId}" style="max-width: 100%; max-height: 300px; border-radius: 12px; margin-bottom: 8px; display: block; cursor: pointer;" onclick="openLightbox('${imgId}')">`;
+        }
+        if (data.text) mc += `<span style="font-size: 15px;">${data.text}</span>`;
+        if (data.time) mc += `<span class="message-time">${formatTime(data.time)}</span>`;
+        
+        msgBubble.innerHTML = mc;
+        msgWrapper.appendChild(msgBubble);
+        messagesDiv.appendChild(msgWrapper);
+        if (isMine) addDeleteHandler(msgBubble, docSnap.id);
     });
 
-    // Автопрокрутка, только если пользователь был внизу
-    if (wasAtBottom) {
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
-  });
+    const total = document.getElementById('msg-total');
+    if (total) total.textContent = ` | 💬 ${snapshot.size}`;
+    if (wasAtBottom) messagesDiv.scrollTop = messagesDiv.scrollHeight;
+});
 
-  // --- КНОПКА "ВЕРНУТЬСЯ ВНИЗ" ---
-  messagesDiv.addEventListener('scroll', () => {
-    const scrollPosition = messagesDiv.scrollTop;
-    const maxScroll = messagesDiv.scrollHeight - messagesDiv.clientHeight;
-    const distanceFromBottom = maxScroll - scrollPosition;
-    
-    if (distanceFromBottom > 150) {
-      scrollToBottomBtn.style.display = 'flex';
-    } else {
-      scrollToBottomBtn.style.display = 'none';
-    }
-  });
+messagesDiv.addEventListener('scroll', () => {
+    const d = messagesDiv.scrollHeight - messagesDiv.scrollTop - messagesDiv.clientHeight;
+    scrollToBottomBtn.style.display = d > 150 ? 'flex' : 'none';
+});
 
-  scrollToBottomBtn.addEventListener('click', () => {
-    messagesDiv.scrollTo({
-      top: messagesDiv.scrollHeight,
-      behavior: 'smooth'
-    });
+scrollToBottomBtn.addEventListener('click', () => {
+    messagesDiv.scrollTo({ top: messagesDiv.scrollHeight, behavior: 'smooth' });
     scrollToBottomBtn.style.display = 'none';
-  });
+});
+
+function openLightbox(imgId) {
+    const img = document.getElementById(imgId);
+    if (!img) return;
+    const overlay = document.createElement('div');
+    overlay.className = 'lightbox-overlay';
+    overlay.innerHTML = '<span class="lightbox-close">✕</span>';
+    const fullImg = document.createElement('img');
+    fullImg.src = img.src;
+    overlay.appendChild(fullImg);
+    document.body.appendChild(overlay);
+    const close = () => { overlay.style.animation = 'fadeIn 0.2s ease reverse'; setTimeout(() => overlay.remove(), 200); };
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    overlay.querySelector('.lightbox-close').addEventListener('click', close);
+    document.addEventListener('keydown', function h(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', h); } });
+}
+window.openLightbox = openLightbox;
 </script>
 </body>
 </html>
