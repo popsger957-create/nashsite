@@ -8,9 +8,6 @@
 </head>
 <body>
 
-
-
-
 <div id="login-overlay" style="
     position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
     background: rgba(0,0,0,0.8); backdrop-filter: blur(20px);
@@ -25,48 +22,49 @@
     </div>
 </div>
 
-
-
-
-
-
-    <div class="rightpannel">
-        <div class="search-box">
-            <img src="Group 2.png" alt="">
-            
-            <div class="search"><input placeholder="Поиск" type="text"></div>
-            <button class="search-btn">ϙ</button>
-        </div>
+<div class="rightpannel">
+    <div class="search-box">
+        <img src="Group 2.png" alt="">
         
-        <div class="contacts-container"></div>
-
+        <div class="search"><input placeholder="Поиск" type="text"></div>
+        <button class="search-btn">ϙ</button>
     </div>
+    
+    <div class="contacts-container"></div>
+</div>
 
-    <div class="chatbox">
-        <div class="curuser">
-            <div class="user-avatar">
-                <img src="ava.jpg" alt="">
-            </div>
-            <span>имя фамилия</span>
-
+<div class="chatbox">
+    <div class="curuser">
+        <div class="user-avatar">
+            <img src="ava.jpg" alt="">
         </div>
-        <div class="messages">
-
-        </div>
-
-        <div class="message">
-            
-            <input placeholder="Сообщение" type="text">
-            <button class="send-btn">▶</button>
-        </div>
+        <span>имя фамилия</span>
     </div>
+    <div class="messages"></div>
+
+    <div class="message">
+        
+        <input type="file" id="file-input" accept="image/*" style="display: none;">
+        
+        
+        
+        
+        <input placeholder="Сообщение" type="text" id="message-input">
+
+
+        <button class="attach-btn" id="attach-btn">📎</button>
+        
+        <!-- Кнопка отправки -->
+        <button class="send-btn">▶</button>
+    </div>
+</div>
 
 <script type="module">
   // 1. Подключаем необходимые модули Firebase
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
   import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
-  // 2. Твой конфиг (на основе твоих скриншотов image_e3ebd8.jpg и image_dc3c51.jpg)
+  // 2. Твой конфиг
   const firebaseConfig = {
     apiKey: "AIzaSyCnNZCTi-1cyZiyG8b_OH9ssriKbn7gpJY",
     authDomain: "zephyr-messenger-866c1.firebaseapp.com",
@@ -81,12 +79,17 @@
   const db = getFirestore(app);
 
   // 4. Элементы интерфейса
-  const input = document.querySelector('.message input');
+  const input = document.getElementById('message-input');
   const btn = document.querySelector('.send-btn');
   const messagesDiv = document.querySelector('.messages');
   const userDisplay = document.querySelector('.curuser span');
+  const fileInput = document.getElementById('file-input');
+  const attachBtn = document.getElementById('attach-btn');
   
-  // Элементы окна входа (убедись, что добавил HTML из предыдущего шага)
+  // Переменная для хранения выбранного файла
+  let selectedFile = null;
+  
+  // Элементы окна входа
   const overlay = document.getElementById('login-overlay');
   const nickInput = document.getElementById('nickname-input');
   const startBtn = document.getElementById('start-chat');
@@ -96,7 +99,7 @@
 
   if (currentNickname) {
     overlay.style.display = 'none';
-    
+    userDisplay.innerText = currentNickname;
   }
 
   startBtn.onclick = () => {
@@ -109,19 +112,98 @@
     }
   };
 
+  // --- ЛОГИКА ВЫБОРА ФАЙЛА ---
+  attachBtn.onclick = () => {
+    fileInput.click(); // Открываем диалог выбора файла
+  };
+
+  fileInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Проверка размера файла (лимит Firestore — 1МБ)
+      const maxSize = 1 * 1024 * 1024; // 1 МБ в байтах
+      
+      if (file.size > maxSize) {
+        alert('Ошибка: Размер файла превышает 1 МБ. Пожалуйста, выберите изображение меньшего размера.');
+        fileInput.value = ''; // Очищаем input
+        selectedFile = null;
+        return;
+      }
+      
+      // Проверка, что это изображение
+      if (!file.type.startsWith('image/')) {
+        alert('Ошибка: Пожалуйста, выберите изображение.');
+        fileInput.value = '';
+        selectedFile = null;
+        return;
+      }
+      
+      selectedFile = file;
+      
+      // Визуальная обратная связь — меняем иконку кнопки
+      attachBtn.textContent = '✅';
+      setTimeout(() => {
+        attachBtn.textContent = '📎';
+      }, 1000);
+    }
+  };
+
+  // --- КОНВЕРТАЦИЯ ФАЙЛА В BASE64 ---
+  function convertFileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+  }
+
   // --- ЛОГИКА ОТПРАВКИ ---
   async function handleSend() {
     const text = input.value.trim();
-    if (text !== "" && currentNickname) {
-      try {
-        await addDoc(collection(db, "chats"), {
-          text: text,
-          user: currentNickname,
-          time: serverTimestamp()
-        });
-        input.value = ""; // Очистка поля
-      } catch (e) {
-        console.error("Ошибка отправки: ", e);
+    
+    // Проверяем, есть ли что отправлять
+    if ((text === "" && !selectedFile) || !currentNickname) {
+      return;
+    }
+    
+    try {
+      const messageData = {
+        user: currentNickname,
+        time: serverTimestamp()
+      };
+      
+      // Добавляем текст, если он есть
+      if (text !== "") {
+        messageData.text = text;
+      }
+      
+      // Конвертируем и добавляем изображение, если оно выбрано
+      if (selectedFile) {
+        try {
+          const base64Image = await convertFileToBase64(selectedFile);
+          messageData.image = base64Image;
+        } catch (error) {
+          console.error("Ошибка конвертации изображения:", error);
+          alert('Ошибка при обработке изображения. Попробуйте другое.');
+          return;
+        }
+      }
+      
+      await addDoc(collection(db, "chats"), messageData);
+      
+      // Очистка после успешной отправки
+      input.value = "";
+      fileInput.value = "";
+      selectedFile = null;
+      attachBtn.textContent = '📎';
+      
+    } catch (e) {
+      console.error("Ошибка отправки: ", e);
+      
+      // Специфичная проверка на превышение размера документа
+      if (e.code === 'resource-exhausted' || e.message.includes('maximum allowed size')) {
+        alert('Ошибка: Сообщение слишком большое. Попробуйте уменьшить размер изображения.');
       }
     }
   }
@@ -147,7 +229,7 @@
       const data = doc.data();
       const msgWrapper = document.createElement('div');
       
-      // Проверяем, чье это сообщение, чтобы выровнять (свое или чужое)
+      // Проверяем, чье это сообщение
       const isMine = data.user === currentNickname;
       
       msgWrapper.style.cssText = `
@@ -169,10 +251,30 @@
         box-shadow: 0 4px 15px rgba(0,0,0,0.1);
       `;
       
-      msgBubble.innerHTML = `
+      // Формируем содержимое сообщения
+      let messageContent = `
         <small style="display:block; opacity:0.5; font-size:10px; margin-bottom:4px;">${data.user}</small>
-        <span style="font-size: 15px;">${data.text}</span>
       `;
+      
+      // Добавляем изображение, если оно есть
+      if (data.image) {
+        messageContent += `
+          <img src="${data.image}" style="
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            display: block;
+          " alt="Отправленное изображение">
+        `;
+      }
+      
+      // Добавляем текст, если он есть
+      if (data.text) {
+        messageContent += `<span style="font-size: 15px;">${data.text}</span>`;
+      }
+      
+      msgBubble.innerHTML = messageContent;
       
       msgWrapper.appendChild(msgBubble);
       messagesDiv.appendChild(msgWrapper);
