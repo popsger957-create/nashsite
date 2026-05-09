@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Zephyr</title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%234B0082'/><text x='50' y='72' font-size='65' text-anchor='middle' font-family='Arial' font-weight='bold' fill='white'>Z</text></svg>">
@@ -224,8 +224,20 @@ function addDeleteHandler(bubble, id) {
             catch (err) { console.error(err); alert('Не удалось удалить'); }
         }
     });
+    
+    let longPressTimer;
+    bubble.addEventListener('touchstart', (e) => {
+        longPressTimer = setTimeout(async () => {
+            e.preventDefault();
+            if (confirm('Удалить сообщение?')) {
+                try { await deleteDoc(doc(db, "chats", id)); }
+                catch (err) { console.error(err); alert('Не удалось удалить'); }
+            }
+        }, 600);
+    }, { passive: false });
+    bubble.addEventListener('touchend', () => clearTimeout(longPressTimer));
+    bubble.addEventListener('touchmove', () => clearTimeout(longPressTimer));
 }
-
 const q = query(collection(db, "chats"), orderBy("time", "asc"));
 
 onSnapshot(q, (snapshot) => {

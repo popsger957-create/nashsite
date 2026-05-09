@@ -15,7 +15,6 @@ body {
     gap: 20px;
 }
 
-
 .rightpannel, .chatbox {
     background: rgba(255, 255, 255, 0.1); 
     backdrop-filter: blur(20px);         
@@ -35,8 +34,8 @@ body {
 
 .chatbox {
     flex-grow: 1;
+    position: relative;
 }
-
 
 .curuser, .search-box {
     height: 70px;
@@ -53,8 +52,8 @@ body {
     font-size: 18px;
     border-radius: 16px;
     flex-shrink: 0;
+    gap: 15px;
 }
-
 
 .search-box {
     gap: 12px;
@@ -68,7 +67,6 @@ body {
 
 .search-box img:hover {
     transform: scale(1.2);
-    
 }
 
 .search {
@@ -96,8 +94,9 @@ body {
 .search input::placeholder {
     color: #888;
 }
-.search-btn{
-       height: 40px;
+
+.search-btn {
+    height: 40px;
     background: #ffffff;
     border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 16px;
@@ -106,22 +105,24 @@ body {
     outline: none;
     font-size: 14px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    transition: ease-in-out 0.3s; 
+    transition: ease-in-out 0.3s;
 }
 
-.search-btn:hover{
-transform: scale(1.2); 
-
+.search-btn:hover {
+    transform: scale(1.2);
 }
-
-
-
 
 .contacts-container, .messages {
     flex-grow: 1;
     overflow-y: auto;
 }
 
+.messages {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px;
+}
 
 .message {
     height: 85px;
@@ -135,6 +136,26 @@ transform: scale(1.2);
     flex-shrink: 0;
 }
 
+.message input {
+    flex-grow: 1;
+    width: 100%;
+    height: 48px;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+    padding: 0 20px;
+    color: #333;
+    outline: none;
+    font-size: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: ease-in-out 0.3s;
+}
+
+.message input:focus {
+    border: 1px solid rgb(0, 0, 0);
+    transform: scaleY(1.1);
+}
+
 .send-btn {
     height: 48px;
     background: #ffffff;
@@ -146,45 +167,17 @@ transform: scale(1.2);
     font-size: 20px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     transition: ease-in-out 0.3s;
+    cursor: pointer;
 }
 
 .send-btn:hover {
-        transform: scale(1.2);
+    transform: scale(1.1);
 }
 
- 
-
-
-.message input {
-    flex-grow: 1;  
-    width: 100%;
-    height: 48px;
-    background: #ffffff;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 16px;
-    padding: 0 20px;
-    color: #333;
-    outline: none;
-    font-size: 15px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-     transition: ease-in-out 0.3s;
-}
-
-.message input:focus {
-    border: 1px solid rgb(0, 0, 0);
-    transform: scaleY(1.2);
-}
-
-
-
-
-
-
-
-
-
-.curuser {
-    gap: 15px; 
+.send-btn:active {
+    transform: scale(0.9);
+    background: #4B0082;
+    color: white;
 }
 
 .user-avatar {
@@ -193,268 +186,31 @@ transform: scale(1.2);
     border-radius: 50%;
     border: 1px solid rgba(255, 255, 255, 0.6);
     flex-shrink: 0;
-    overflow: hidden; 
+    overflow: hidden;
 }
 
 .user-avatar img {
-    width: 100%;       
-    height: 100%;      
-    object-fit: cover; 
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
     display: block;
 }
 
-
-
-
-
-
-
-
-::-webkit-scrollbar {
-    width: 6px;
-}
-
-::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.1);
-    border-radius: 16px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.2);
-}
-
-
-
-
-
-
-
-
-.messages {
-    flex-grow: 1;
-    overflow-y: auto; 
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 20px;
-    
-}
-
-
-
 .attach-btn {
-    background: none;
-    border: none;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
     font-size: 20px;
     cursor: pointer;
-    padding: 0 10px;
-    color: white;
-    transition: transform 0.2s;
-    background-color: #ffffff;
     padding: 10px;
-    border-radius: 16px;
+    color: #333;
+    transition: transform 0.2s;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .attach-btn:hover {
-    transform: scale(1.2);
+    transform: scale(1.1);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* ==================== АДАПТАЦИЯ ПОД МОБИЛЬНЫЕ УСТРОЙСТВА ==================== */
-
-/* Планшеты (до 1024px) */
-@media (max-width: 1024px) {
-    body {
-        padding: 10px;
-        gap: 10px;
-    }
-    
-    .rightpannel {
-        width: 250px;
-    }
-}
-
-/* Мобильные устройства (до 768px) */
-@media (max-width: 768px) {
-    body {
-        flex-direction: column;
-        padding: 10px;
-        gap: 10px;
-        height: 100dvh; /* Для мобильных браузеров с динамической высотой */
-    }
-    
-    .rightpannel {
-        display: none; /* Скрываем боковую панель на мобильных */
-    }
-    
-    .chatbox {
-        flex-grow: 1;
-        border-radius: 20px;
-        height: 100%;
-    }
-    
-    .curuser {
-        height: 60px;
-        font-size: 16px;
-        padding: 0 15px;
-        border-radius: 12px;
-    }
-    
-    .user-avatar {
-        width: 38px;
-        height: 38px;
-    }
-    
-    .messages {
-        padding: 15px;
-        gap: 8px;
-    }
-    
-    .message {
-        height: 70px;
-        padding: 0 10px;
-        gap: 8px;
-        border-radius: 12px;
-    }
-    
-    .message input {
-        height: 42px;
-        padding: 0 12px;
-        font-size: 14px;
-        border-radius: 12px;
-    }
-    
-    .attach-btn {
-        font-size: 18px;
-        padding: 8px;
-        border-radius: 12px;
-    }
-    
-    .send-btn {
-        height: 42px;
-        padding: 0 15px;
-        font-size: 18px;
-        border-radius: 12px;
-    }
-    
-    /* Уменьшаем max-width сообщений */
-    .messages div[style] {
-        max-width: 85% !important;
-    }
-}
-
-/* Маленькие мобильные (до 480px) */
-@media (max-width: 480px) {
-    body {
-        padding: 5px;
-        gap: 5px;
-    }
-    
-    .chatbox {
-        border-radius: 16px;
-    }
-    
-    .curuser {
-        height: 55px;
-        font-size: 15px;
-        padding: 0 10px;
-        border-radius: 10px;
-    }
-    
-    .user-avatar {
-        width: 35px;
-        height: 35px;
-    }
-    
-    .messages {
-        padding: 10px;
-        gap: 6px;
-    }
-    
-    .message {
-        height: 60px;
-        padding: 0 8px;
-        gap: 6px;
-        border-radius: 10px;
-    }
-    
-    .message input {
-        height: 38px;
-        padding: 0 10px;
-        font-size: 13px;
-        border-radius: 10px;
-    }
-    
-    .attach-btn {
-        font-size: 16px;
-        padding: 6px;
-        border-radius: 10px;
-    }
-    
-    .send-btn {
-        height: 38px;
-        padding: 0 12px;
-        font-size: 16px;
-        border-radius: 10px;
-    }
-    
-    #login-overlay > div {
-        padding: 25px !important;
-        border-radius: 16px !important;
-    }
-    
-    #login-overlay h2 {
-        font-size: 18px !important;
-    }
-    
-    #nickname-input {
-        width: 160px !important;
-        font-size: 14px !important;
-        padding: 10px !important;
-    }
-    
-    #start-chat {
-        padding: 10px 16px !important;
-        font-size: 14px !important;
-        margin-left: 5px !important;
-    }
-}
-
-/* Исправление для мобильных браузеров с динамической панелью */
-@supports (height: 100dvh) {
-    @media (max-width: 768px) {
-        body {
-            height: 100dvh;
-        }
-    }
-}
-
 
 .message-time {
     display: block;
@@ -464,13 +220,10 @@ transform: scale(1.2);
     text-align: right;
 }
 
-
-
-/* Кнопка "Вернуться вниз" */
 .scroll-to-bottom {
     position: absolute;
-    bottom: 100px;
-    right: 30px;
+    bottom: 110px;
+    right: 25px;
     width: 45px;
     height: 45px;
     border-radius: 50%;
@@ -494,18 +247,6 @@ transform: scale(1.2);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 
-.scroll-to-bottom:active {
-    transform: translateY(0);
-}
-
-
-
-
-
-
-
-
-/* Лайтбокс */
 .lightbox-overlay {
     position: fixed;
     top: 0;
@@ -555,9 +296,6 @@ transform: scale(1.2);
     to { transform: scale(1); opacity: 1; }
 }
 
-
-
-
 @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
@@ -566,12 +304,6 @@ transform: scale(1.2);
 .attach-btn.has-file {
     animation: pulse 0.8s infinite;
 }
-
-
-
-
-
-
 
 #image-preview {
     animation: slideUp 0.2s ease;
@@ -588,7 +320,6 @@ transform: scale(1.2);
     transition: all 0.2s;
 }
 
-
 @keyframes fall {
     to { transform: translateY(100vh) rotate(360deg); opacity: 0; }
 }
@@ -600,4 +331,198 @@ transform: scale(1.2);
     animation: fall 3s linear;
     pointer-events: none;
     z-index: 9999;
+}
+
+@keyframes popIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+/* ==================== МОБИЛЬНАЯ АДАПТАЦИЯ ==================== */
+
+@media (max-width: 768px) {
+    body {
+        flex-direction: column;
+        padding: 0;
+        gap: 0;
+        height: 100dvh;
+    }
+    
+    .rightpannel {
+        display: none;
+    }
+    
+    .chatbox {
+        border-radius: 0;
+        height: 100dvh;
+    }
+    
+    .curuser {
+        height: 70px;
+        font-size: 16px;
+        padding: 0 12px;
+        border-radius: 16px;
+    }
+    
+    .user-avatar {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .messages {
+        padding: 12px;
+        gap: 8px;
+    }
+    
+    .message {
+        height: 64px;
+        padding: 0 10px;
+        gap: 8px;
+        border-radius: 16px;
+    }
+    
+    .message input {
+        height: 42px;
+        padding: 0 12px;
+        font-size: 14px;
+        border-radius: 20px;
+    }
+    
+    .message input:focus {
+        transform: none;
+    }
+    
+    .attach-btn {
+        font-size: 18px;
+        padding: 8px 10px;
+        border-radius: 20px;
+    }
+    
+    .send-btn {
+        height: 42px;
+        padding: 0 16px;
+        font-size: 18px;
+        border-radius: 20px;
+    }
+    
+    .scroll-to-bottom {
+        bottom: 90px;
+        right: 16px;
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+    
+    .lightbox-close {
+        top: 16px;
+        right: 16px;
+        font-size: 32px;
+    }
+    
+    #image-preview {
+        padding: 8px 12px;
+    }
+    
+    #preview-img {
+        max-height: 45px;
+        max-width: 45px;
+    }
+    
+    #preview-name {
+        font-size: 12px;
+    }
+    
+    #login-overlay > div {
+        padding: 30px;
+        border-radius: 20px;
+        margin: 0 20px;
+    }
+    
+    #login-overlay h2 {
+        font-size: 20px;
+    }
+    
+    #nickname-input {
+        width: 100% !important;
+        font-size: 16px !important;
+    }
+    
+    #start-chat {
+        margin-left: 0 !important;
+        margin-top: 10px;
+        width: 100%;
+    }
+}
+
+@media (max-width: 380px) {
+    .curuser {
+        height: 50px;
+        font-size: 15px;
+        padding: 0 10px;
+    }
+    
+    .user-avatar {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .messages {
+        padding: 8px;
+        gap: 6px;
+    }
+    
+    .message {
+        height: 56px;
+        padding: 0 8px;
+        gap: 6px;
+    }
+    
+    .message input {
+        height: 38px;
+        padding: 0 10px;
+        font-size: 13px;
+    }
+    
+    .attach-btn {
+        font-size: 16px;
+        padding: 6px 8px;
+    }
+    
+    .send-btn {
+        height: 38px;
+        padding: 0 12px;
+        font-size: 16px;
+    }
+    
+    .scroll-to-bottom {
+        bottom: 75px;
+        right: 12px;
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+    }
+}
+
+
+@media (max-width: 768px) {
+    .message input {
+        font-size: 16px !important;
+    }
 }
