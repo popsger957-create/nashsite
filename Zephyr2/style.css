@@ -370,7 +370,7 @@ body {
     }
     
     .chatbox {
-        border-radius: 0;
+        border-radius: 16px;
         height: 100dvh;
     }
     
