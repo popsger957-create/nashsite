@@ -78,6 +78,7 @@ const startBtn = document.getElementById('start-chat');
 
 let selectedFile = null;
 let currentNickname = localStorage.getItem('zephyr-nick');
+let replyTarget = null;
 
 if (currentNickname) {
     overlay.style.display = 'none';
@@ -175,6 +176,10 @@ async function handleSend() {
 
     try {
         const messageData = { user: currentNickname, time: serverTimestamp() };
+        if (replyTarget) {
+            messageData.replyTo = replyTarget;
+            cancelReply();
+        }
         if (text !== "") messageData.text = text;
         if (selectedFile) {
             const base64Image = await compressAndConvertToBase64(selectedFile);
@@ -238,6 +243,76 @@ function addDeleteHandler(bubble, id) {
     bubble.addEventListener('touchend', () => clearTimeout(longPressTimer));
     bubble.addEventListener('touchmove', () => clearTimeout(longPressTimer));
 }
+
+// Функция ответа на сообщение
+function replyToMessage(user, text, id) {
+    // Убираем подсветку со всех сообщений
+    document.querySelectorAll('.highlight-reply').forEach(el => el.classList.remove('highlight-reply'));
+    
+    replyTarget = { user, text, id };
+    
+    // Удаляем старую плашку если есть
+    const old = document.getElementById('reply-preview');
+    if (old) old.remove();
+    
+    // Создаем новую плашку
+    const preview = document.createElement('div');
+    preview.id = 'reply-preview';
+    preview.className = 'reply-preview';
+    preview.style.cssText = `
+        padding: 10px 20px;
+        background: rgba(255,255,255,0.08);
+        border-left: 3px solid rgba(255,255,255,0.6);
+        color: rgba(255,255,255,0.8);
+        font-size: 13px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        animation: slideUp 0.2s ease;
+    `;
+    
+    const replyText = text ? (text.length > 40 ? text.substring(0, 40) + '...' : text) : 'Изображение';
+    
+    preview.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 16px;">↩</span>
+            <div>
+                <span style="color: ${nickColor(user)}; font-weight: bold;">${user}</span>
+                <span style="opacity: 0.7;">: ${replyText}</span>
+            </div>
+        </div>
+        <button onclick="cancelReply()" style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-size: 18px; padding: 4px 8px;">✕</button>
+    `;
+    
+    // Вставляем перед .message
+    const msgBar = document.querySelector('.message');
+    if (msgBar && msgBar.parentNode) {
+        msgBar.parentNode.insertBefore(preview, msgBar);
+    }
+    
+    // Подсвечиваем целевое сообщение
+    const targetMsg = document.getElementById('msg-' + id);
+    if (targetMsg) {
+        targetMsg.classList.add('highlight-reply');
+        targetMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    
+    input.focus();
+}
+
+// Функция отмены ответа
+function cancelReply() {
+    document.querySelectorAll('.highlight-reply').forEach(el => el.classList.remove('highlight-reply'));
+    replyTarget = null;
+    const preview = document.getElementById('reply-preview');
+    if (preview) preview.remove();
+}
+
+// Делаем функции глобально доступными
+window.replyToMessage = replyToMessage;
+window.cancelReply = cancelReply;
+
 const q = query(collection(db, "chats"), orderBy("time", "asc"));
 
 onSnapshot(q, (snapshot) => {
@@ -260,10 +335,38 @@ onSnapshot(q, (snapshot) => {
             const imgId = 'img-' + docSnap.id;
             mc += `<img src="${data.image}" id="${imgId}" style="max-width: 100%; max-height: 300px; border-radius: 12px; margin-bottom: 8px; display: block; cursor: pointer;" onclick="openLightbox('${imgId}')">`;
         }
-        if (data.text) mc += `<span style="font-size: 15px;">${data.text}</span>`;
+        
+        if (data.replyTo) {
+            mc += `<div class="replied-msg" onclick="document.getElementById('msg-${data.replyTo.id}')?.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>{const el=document.getElementById('msg-${data.replyTo.id}'); if(el){el.classList.add('highlight-reply');setTimeout(()=>el.classList.remove('highlight-reply'),1500)}},300)">
+                <div class="replied-msg-user" style="color:${nickColor(data.replyTo.user)}">${data.replyTo.user}</div>
+                <div>${data.replyTo.text?.substring(0, 50) || '🖼️ Изображение'}</div>
+            </div>`;
+        }
+        
+if (data.text) {
+            // Защита от XSS (экранируем теги, чтобы не ломалась верстка)
+            const safeText = data.text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            mc += `<span style="font-size: 15px;">${safeText}</span>`;
+        }
+        
+        // Убрали проблемный inline onclick!
+        mc += `<button class="reply-btn-msg">↩</button>`;
+        
         if (data.time) mc += `<span class="message-time">${formatTime(data.time)}</span>`;
         
         msgBubble.innerHTML = mc;
+        msgBubble.id = 'msg-' + docSnap.id;
+        msgBubble.className = 'msg-bubble';
+        
+        // Безопасно вешаем обработчик события на кнопку
+        const replyBtn = msgBubble.querySelector('.reply-btn-msg');
+        if (replyBtn) {
+            replyBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                replyToMessage(data.user, data.text || '', docSnap.id);
+            });
+        }
+        
         msgWrapper.appendChild(msgBubble);
         messagesDiv.appendChild(msgWrapper);
         if (isMine) addDeleteHandler(msgBubble, docSnap.id);
