@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Обратный отсчет до ИВЕНТА</title>
+    <style>
+        /* Минимальные стили: белый фон, черный текст, полное центрирование */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #ffffff;   /* Белый фон */
+            color: #000000;             /* Черный текст */
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            font-weight: 400;
+            line-height: 1.4;
+            min-height: 100vh;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* Контейнер — только таймер и минимальный текст, без декораций */
+        .countdown-container {
+            max-width: 850px;
+            width: 100%;
+        }
+
+        /* Заголовок: простое описание, черный, без жирности если не нужно */
+        .event-title {
+            font-size: 1.8rem;
+            font-weight: 500;
+            margin-bottom: 2rem;
+            letter-spacing: -0.01em;
+        }
+
+        /* Сетка таймера: чистые блоки с цифрами и подписями */
+        .timer {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1.2rem 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .timer-block {
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .timer-number {
+            font-size: 4.2rem;
+            font-weight: 600;
+            line-height: 1.1;
+            letter-spacing: 2px;
+            color: #000000;
+        }
+
+        .timer-label {
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 500;
+            color: #000000;
+            opacity: 0.7;
+            margin-top: 0.3rem;
+        }
+
+        /* Сообщение после завершения времени — обычный черный текст */
+        .expired-message {
+            font-size: 1.6rem;
+            font-weight: 500;
+            color: #000000;
+            margin-top: 1.5rem;
+        }
+
+        /* Никаких теней, границ, фоновых эффектов, рамок, анимаций, лишних отступов */
+        hr, .decoration, .extra, footer, .note {
+            display: none;
+        }
+
+        /* адаптив: на маленьких экранах цифры чуть меньше, но остаются черными на белом */
+        @media (max-width: 550px) {
+            .timer-number {
+                font-size: 2.8rem;
+            }
+            .timer-block {
+                min-width: 70px;
+            }
+            .event-title {
+                font-size: 1.4rem;
+            }
+            .expired-message {
+                font-size: 1.3rem;
+            }
+        }
+
+        /* убираем outline при фокусе для чистоты, но доступность не нарушаем */
+        :focus {
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+<div class="countdown-container">
+    <div class="event-title">До ИВЕНТА осталось</div>
+    <div class="timer" id="timerDisplay">
+        <div class="timer-block">
+            <div class="timer-number" id="days">00</div>
+            <div class="timer-label">Дней</div>
+        </div>
+        <div class="timer-block">
+            <div class="timer-number" id="hours">00</div>
+            <div class="timer-label">Часов</div>
+        </div>
+        <div class="timer-block">
+            <div class="timer-number" id="minutes">00</div>
+            <div class="timer-label">Минут</div>
+        </div>
+        <div class="timer-block">
+            <div class="timer-number" id="seconds">00</div>
+            <div class="timer-label">Секунд</div>
+        </div>
+    </div>
+    <!-- Сообщение, которое появляется только когда отсчет закончен (скрыто по умолчанию) -->
+    <div id="expiredMessage" class="expired-message" style="display: none;">Событие наступило!</div>
+</div>
+
+<script>
+    (function() {
+        // Целевая дата: 12 мая 2026 года, 14:00 (местное время браузера)
+        // Используем явное указание даты с учетом часового пояса пользователя,
+        // но без привязки к UTC: создаем дату в локальном времени.
+        // Месяц в JS начинается с 0 (май = 4)
+        const targetDate = new Date(2026, 4, 12, 14, 0, 0, 0);
+
+        // Элементы DOM
+        const daysSpan = document.getElementById('days');
+        const hoursSpan = document.getElementById('hours');
+        const minutesSpan = document.getElementById('minutes');
+        const secondsSpan = document.getElementById('seconds');
+        const timerContainer = document.getElementById('timerDisplay');
+        const expiredMsgDiv = document.getElementById('expiredMessage');
+
+        // Вспомогательная функция для форматирования чисел с ведущим нулем
+        function formatTimeUnit(value) {
+            return value < 10 ? '0' + value : value.toString();
+        }
+
+        // Основная функция обновления таймера
+        function updateCountdown() {
+            const now = new Date(); // текущее локальное время
+            const diff = targetDate - now; // разница в миллисекундах
+
+            // Проверяем, истекло ли время или еще не наступило
+            if (diff <= 0) {
+                // Событие наступило или время прошло
+                // Скрываем блоки с цифрами (таймер)
+                if (timerContainer) {
+                    timerContainer.style.display = 'none';
+                }
+                // Показываем сообщение о наступлении события
+                if (expiredMsgDiv) {
+                    expiredMsgDiv.style.display = 'block';
+                }
+                return;
+            }
+
+            // Если время еще есть — показываем таймер, скрываем сообщение (если было видно)
+            if (timerContainer) {
+                timerContainer.style.display = 'flex';
+            }
+            if (expiredMsgDiv) {
+                expiredMsgDiv.style.display = 'none';
+            }
+
+            // Вычисляем дни, часы, минуты, секунды
+            const totalSeconds = Math.floor(diff / 1000);
+            const days = Math.floor(totalSeconds / 86400);
+            const hours = Math.floor((totalSeconds % 86400) / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            // Обновляем содержимое
+            if (daysSpan) daysSpan.innerText = formatTimeUnit(days);
+            if (hoursSpan) hoursSpan.innerText = formatTimeUnit(hours);
+            if (minutesSpan) minutesSpan.innerText = formatTimeUnit(minutes);
+            if (secondsSpan) secondsSpan.innerText = formatTimeUnit(seconds);
+        }
+
+        // Первый немедленный запуск, чтобы не ждать секунду
+        updateCountdown();
+
+        // Интервал обновления каждую секунду (1000 мс)
+        setInterval(updateCountdown, 1000);
+    })();
+</script>
+</body>
+</html>

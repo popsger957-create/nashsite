@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Кликер • Ивент</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #ffffff;
+            color: #000000;
+            font-family: 'Courier New', 'Consolas', 'Monaco', monospace;
+            text-align: center;
+            min-height: 100vh;
+            padding: 20px;
+            user-select: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 460px;
+            margin: 0 auto;
+            background: #ffffff;
+            border: 3px solid #000000;
+            padding: 30px 25px 25px;
+        }
+
+        /* ── Заголовок ивента ── */
+        .event-header {
+            border: 3px solid #000000;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            background: #000000;
+            color: #ffffff;
+        }
+
+        .event-title {
+            font-size: 0.7rem;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .event-prize {
+            font-size: 1.4rem;
+            font-weight: 900;
+            letter-spacing: 3px;
+            margin-top: 4px;
+        }
+
+        /* ── Таймер ── */
+        .timer-box {
+            border: 2px solid #000000;
+            padding: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .timer-label {
+            font-size: 0.6rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        #timer {
+            font-size: 1.6rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .timer-ended {
+            animation: blink 0.8s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* ── Счёт ── */
+        .score-box {
+            border: 2px solid #000000;
+            background: #ffffff;
+            padding: 20px 15px;
+            margin-bottom: 24px;
+        }
+
+        .score-label {
+            font-size: 0.7rem;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            color: #000000;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        #score {
+            font-size: 4rem;
+            font-weight: 900;
+            color: #000000;
+            letter-spacing: 4px;
+            line-height: 1;
+            margin-bottom: 6px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .info {
+            font-size: 0.7rem;
+            color: #000000;
+            letter-spacing: 2px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .rate-info {
+            font-size: 0.6rem;
+            letter-spacing: 2px;
+            font-weight: 700;
+            margin-top: 4px;
+            opacity: 0.7;
+        }
+
+        /* ── Кнопка клика ── */
+        .btn {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: 4px solid #000000;
+            background: #000000;
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 900;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.08s ease;
+            margin-bottom: 28px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: #ffffff;
+            color: #000000;
+            border-width: 4px;
+        }
+
+        .btn:active:not(:disabled) {
+            transform: scale(0.75);
+            background: #000000;
+            color: #ffffff;
+            border-color: #000000;
+        }
+
+        .btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            background: #ffffff;
+            color: #000000;
+        }
+
+        /* ── Магазин ── */
+        .shop-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 12px;
+            border-bottom: 2px solid #000000;
+            padding-bottom: 8px;
+        }
+
+        h3 {
+            font-weight: 900;
+            letter-spacing: 4px;
+            font-size: 0.7rem;
+            color: #000000;
+            text-transform: uppercase;
+            margin: 0;
+        }
+
+        .upgrades {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .upgrade-row {
+            display: flex;
+            gap: 6px;
+            align-items: stretch;
+        }
+
+        .upgrade-btn {
+            background: #ffffff;
+            border: 2px solid #000000;
+            color: #000000;
+            padding: 13px 14px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            transition: all 0.1s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-align: left;
+            flex: 1;
+            background: #ffffff;
+        }
+
+        .upgrade-btn:hover:not(:disabled) {
+            background: #000000;
+            color: #ffffff;
+            border-color: #000000;
+        }
+
+        .upgrade-btn:hover:not(:disabled) .upgrade-cost,
+        .upgrade-btn:hover:not(:disabled) .upgrade-owned {
+            color: #ffffff;
+            background: #000000;
+            border-color: #ffffff;
+        }
+
+        .upgrade-btn:active:not(:disabled) {
+            transform: scale(0.97);
+            background: #000000;
+            color: #ffffff;
+        }
+
+        .upgrade-btn:disabled {
+            opacity: 0.25;
+            cursor: not-allowed;
+            border-style: solid;
+            background: #ffffff;
+            color: #000000;
+        }
+
+        .upgrade-name {
+            font-weight: 900;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+        }
+
+        .upgrade-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+        }
+
+        .upgrade-cost {
+            color: #000000;
+            font-weight: 900;
+            letter-spacing: 1px;
+            background: #ffffff;
+            border: 1px solid #000000;
+            padding: 2px 7px;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .upgrade-owned {
+            background: #000000;
+            color: #ffffff;
+            padding: 3px 10px;
+            font-size: 11px;
+            font-weight: 900;
+            min-width: 28px;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .max-btn {
+            background: #ffffff;
+            border: 2px solid #000000;
+            color: #000000;
+            font-family: 'Courier New', monospace;
+            font-weight: 900;
+            font-size: 0.6rem;
+            letter-spacing: 1px;
+            padding: 0 8px;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            min-width: 58px;
+            text-transform: uppercase;
+            white-space: nowrap;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.2;
+        }
+
+        .max-btn:hover:not(:disabled) {
+            background: #000000;
+            color: #ffffff;
+            border-color: #000000;
+        }
+
+        .max-btn:active:not(:disabled) {
+            transform: scale(0.93);
+        }
+
+        .max-btn:disabled {
+            opacity: 0.25;
+            cursor: not-allowed;
+            background: #ffffff;
+            color: #000000;
+            border: 2px solid #000000;
+        }
+
+        .max-label {
+            font-size: 0.55rem;
+            letter-spacing: 2px;
+        }
+
+        .max-count {
+            font-size: 0.8rem;
+            font-weight: 900;
+        }
+
+        /* ── Финиш / Результат ── */
+        .result-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .result-overlay.active {
+            display: flex;
+        }
+
+        .result-box {
+            border: 4px solid #000000;
+            background: #ffffff;
+            padding: 40px 30px;
+            max-width: 420px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .result-title {
+            font-size: 1.2rem;
+            font-weight: 900;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        .result-score {
+            font-size: 3.5rem;
+            font-weight: 900;
+            letter-spacing: 4px;
+            margin-bottom: 8px;
+        }
+
+        .result-coins {
+            font-size: 2rem;
+            font-weight: 900;
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+            border-top: 2px solid #000000;
+            border-bottom: 2px solid #000000;
+            padding: 12px 0;
+        }
+
+        .result-rate {
+            font-size: 0.7rem;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            opacity: 0.7;
+        }
+
+        .result-note {
+            font-size: 0.6rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="gameContainer">
+        <!-- Шапка ивента -->
+        <div class="event-header">
+            <div class="event-title">🔥 Ивент: Кликер-баттл</div>
+            <div class="event-prize">1 очко = 0.05 монет</div>
+        </div>
+
+        <!-- Таймер -->
+        <div class="timer-box">
+            <span class="timer-label">До конца:</span>
+            <span id="timer">05:00</span>
+        </div>
+
+        <!-- Баланс -->
+        <div class="score-box">
+            <div class="score-label">Очки</div>
+            <div id="score">0</div>
+            <div class="info">сила клика: <span id="clickPower">1</span></div>
+            <div class="rate-info">≈ <span id="approxCoins">0</span> монет</div>
+        </div>
+
+        <!-- Кнопка клика -->
+        <button class="btn" id="clickBtn">click</button>
+
+        <!-- Магазин -->
+        <div class="shop-header">
+            <h3>Магазин</h3>
+        </div>
+
+        <div class="upgrades" id="upgradesContainer">
+            <!-- Улучшения создаются динамически -->
+        </div>
+    </div>
+
+    <!-- Окно результатов -->
+    <div class="result-overlay" id="resultOverlay">
+        <div class="result-box">
+            <div class="result-title">🏆 Ивент завершён!</div>
+            <div class="result-score" id="resultScore">0 очков</div>
+            <div class="result-coins" id="resultCoins">0 монет</div>
+            <div class="result-rate">по курсу 1 очко = 0.05 монет</div>
+            <div class="result-note">результат сохранён</div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // КОНФИГУРАЦИЯ ИВЕНТА
+            // ──────────────────────────────────────
+            const EVENT_DURATION_SEC = 5 * 60; // 5 минут
+            const COINS_PER_POINT = 0.05;       // 1 очко = 0.05 монет
+
+            // ──────────────────────────────────────
+            // СОСТОЯНИЕ ИГРЫ
+            // ──────────────────────────────────────
+            let score = 0;
+            let clickPower = 1;
+            let timeLeft = EVENT_DURATION_SEC;
+            let eventActive = true;
+            let timerInterval = null;
+
+            const upgrades = [
+                { cost: 10, bonus: 1, bought: 0 },
+                { cost: 50, bonus: 5, bought: 0 },
+                { cost: 150, bonus: 10, bought: 0 },
+                { cost: 500, bonus: 25, bought: 0 },
+                { cost: 2000, bonus: 100, bought: 0 }
+            ];
+
+            // ──────────────────────────────────────
+            // DOM-ЭЛЕМЕНТЫ
+            // ──────────────────────────────────────
+            const scoreElement = document.getElementById('score');
+            const clickPowerElement = document.getElementById('clickPower');
+            const approxCoinsElement = document.getElementById('approxCoins');
+            const clickButton = document.getElementById('clickBtn');
+            const timerElement = document.getElementById('timer');
+            const container = document.getElementById('upgradesContainer');
+            const resultOverlay = document.getElementById('resultOverlay');
+            const resultScoreElement = document.getElementById('resultScore');
+            const resultCoinsElement = document.getElementById('resultCoins');
+
+            // Массивы для быстрого доступа
+            const upgradeButtons = [];
+            const maxButtons = [];
+            const maxCountSpans = [];
+            const costSpans = [];
+            const ownedSpans = [];
+
+            // Кэш рендеринга
+            let lastRenderedScore = -1;
+            let lastRenderedClickPower = -1;
+            let lastRenderedApproxCoins = -1;
+            let lastRenderedCosts = [-1, -1, -1, -1, -1];
+            let lastRenderedOwned = [-1, -1, -1, -1, -1];
+            let lastRenderedMaxCounts = [-1, -1, -1, -1, -1];
+            let lastDisabledState = [true, true, true, true, true];
+
+            let rafId = null;
+            let needsUpdate = false;
+
+            // ──────────────────────────────────────
+            // ТАЙМЕР
+            // ──────────────────────────────────────
+            function formatTime(seconds) {
+                const m = Math.floor(seconds / 60);
+                const s = seconds % 60;
+                return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+            }
+
+            function updateTimerDisplay() {
+                timerElement.textContent = formatTime(timeLeft);
+                if (timeLeft <= 30) {
+                    timerElement.classList.add('timer-ended');
+                } else {
+                    timerElement.classList.remove('timer-ended');
+                }
+            }
+
+            function startTimer() {
+                updateTimerDisplay();
+                timerInterval = setInterval(() => {
+                    timeLeft--;
+                    updateTimerDisplay();
+
+                    if (timeLeft <= 0) {
+                        endEvent();
+                    }
+                }, 1000);
+            }
+
+            function endEvent() {
+                eventActive = false;
+                clearInterval(timerInterval);
+                timerElement.textContent = '00:00';
+                timerElement.classList.add('timer-ended');
+
+                // Блокируем кнопки
+                clickButton.disabled = true;
+                for (let i = 0; i < upgradeButtons.length; i++) {
+                    upgradeButtons[i].disabled = true;
+                    maxButtons[i].disabled = true;
+                }
+
+                // Показываем результат
+                const coinsEarned = Math.floor(score * COINS_PER_POINT);
+                resultScoreElement.textContent = score.toLocaleString() + ' очков';
+                resultCoinsElement.textContent = coinsEarned.toLocaleString() + ' монет';
+                resultOverlay.classList.add('active');
+
+                // Финальное обновление
+                forceUpdate();
+
+                // Отправка результата (заглушка — раскомментировать для реального API)
+                // submitResult(score, coinsEarned);
+            }
+
+            // Заглушка для отправки результата на сервер
+            function submitResult(points, coins) {
+                // Пример:
+                // fetch('/api/event/submit', {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify({ points, coins, timestamp: Date.now() })
+                // });
+                console.log('Результат ивента:', { points, coins });
+            }
+
+            // ──────────────────────────────────────
+            // ИГРОВАЯ ЛОГИКА
+            // ──────────────────────────────────────
+            function getMaxAffordable(index) {
+                const currentCost = upgrades[index].cost;
+                if (score < currentCost || currentCost <= 0) return 0;
+
+                let remaining = score;
+                let count = 0;
+                let simCost = currentCost;
+
+                while (remaining >= simCost) {
+                    remaining -= simCost;
+                    count++;
+                    simCost = Math.floor(simCost * 1.8);
+                    if (simCost <= 0) break;
+                }
+                return count;
+            }
+
+            function buyUpgrade(index, times) {
+                if (!eventActive) return 0;
+                if (times <= 0) return 0;
+                let bought = 0;
+                const upgrade = upgrades[index];
+
+                for (let i = 0; i < times; i++) {
+                    if (score < upgrade.cost) break;
+                    score -= upgrade.cost;
+                    clickPower += upgrade.bonus;
+                    upgrade.bought++;
+                    upgrade.cost = Math.floor(upgrade.cost * 1.8);
+                    bought++;
+                }
+                return bought;
+            }
+
+            function buyMaxForIndex(index) {
+                if (!eventActive) return;
+                const maxAfford = getMaxAffordable(index);
+                if (maxAfford > 0) {
+                    buyUpgrade(index, maxAfford);
+                }
+            }
+
+            function getApproxCoins() {
+                return Math.floor(score * COINS_PER_POINT);
+            }
+
+            // ──────────────────────────────────────
+            // РЕНДЕРИНГ
+            // ──────────────────────────────────────
+            function scheduleUpdate() {
+                needsUpdate = true;
+                if (!rafId) {
+                    rafId = requestAnimationFrame(performUpdate);
+                }
+            }
+
+            function performUpdate() {
+                rafId = null;
+                needsUpdate = false;
+
+                const approxCoins = getApproxCoins();
+
+                if (score !== lastRenderedScore) {
+                    scoreElement.textContent = score;
+                    lastRenderedScore = score;
+                }
+
+                if (clickPower !== lastRenderedClickPower) {
+                    clickPowerElement.textContent = clickPower;
+                    lastRenderedClickPower = clickPower;
+                }
+
+                if (approxCoins !== lastRenderedApproxCoins) {
+                    approxCoinsElement.textContent = approxCoins.toLocaleString();
+                    lastRenderedApproxCoins = approxCoins;
+                }
+
+                for (let i = 0; i < upgrades.length; i++) {
+                    const canAfford = eventActive && score >= upgrades[i].cost;
+                    const maxCount = canAfford ? getMaxAffordable(i) : 0;
+
+                    if (upgrades[i].cost !== lastRenderedCosts[i]) {
+                        costSpans[i].textContent = upgrades[i].cost;
+                        lastRenderedCosts[i] = upgrades[i].cost;
+                    }
+
+                    if (upgrades[i].bought !== lastRenderedOwned[i]) {
+                        ownedSpans[i].textContent = upgrades[i].bought;
+                        lastRenderedOwned[i] = upgrades[i].bought;
+                    }
+
+                    if (maxCount !== lastRenderedMaxCounts[i]) {
+                        maxCountSpans[i].textContent = 'x' + maxCount;
+                        lastRenderedMaxCounts[i] = maxCount;
+                    }
+
+                    const isDisabled = !canAfford;
+                    if (isDisabled !== lastDisabledState[i]) {
+                        upgradeButtons[i].disabled = isDisabled;
+                        maxButtons[i].disabled = isDisabled;
+                        lastDisabledState[i] = isDisabled;
+                    }
+                }
+            }
+
+            function forceUpdate() {
+                lastRenderedScore = -1;
+                lastRenderedClickPower = -1;
+                lastRenderedApproxCoins = -1;
+                for (let i = 0; i < upgrades.length; i++) {
+                    lastRenderedCosts[i] = -1;
+                    lastRenderedOwned[i] = -1;
+                    lastRenderedMaxCounts[i] = -1;
+                    lastDisabledState[i] = true;
+                }
+                scheduleUpdate();
+            }
+
+            // ──────────────────────────────────────
+            // СОЗДАНИЕ DOM
+            // ──────────────────────────────────────
+            function buildUpgrades() {
+                container.innerHTML = '';
+                for (let i = 0; i < upgrades.length; i++) {
+                    const row = document.createElement('div');
+                    row.className = 'upgrade-row';
+
+                    const btn = document.createElement('button');
+                    btn.className = 'upgrade-btn';
+                    btn.innerHTML = `
+                        <span class="upgrade-name">+${upgrades[i].bonus} / клик</span>
+                        <span class="upgrade-info">
+                            <span class="upgrade-cost">${upgrades[i].cost}</span>
+                            <span class="upgrade-owned">0</span>
+                        </span>
+                    `;
+
+                    const maxBtn = document.createElement('button');
+                    maxBtn.className = 'max-btn';
+                    maxBtn.innerHTML = `
+                        <span class="max-label">MAX</span>
+                        <span class="max-count">x0</span>
+                    `;
+
+                    row.appendChild(btn);
+                    row.appendChild(maxBtn);
+                    container.appendChild(row);
+
+                    upgradeButtons.push(btn);
+                    maxButtons.push(maxBtn);
+                    maxCountSpans.push(maxBtn.querySelector('.max-count'));
+                    costSpans.push(btn.querySelector('.upgrade-cost'));
+                    ownedSpans.push(btn.querySelector('.upgrade-owned'));
+
+                    btn.addEventListener('click', () => {
+                        if (!eventActive) return;
+                        buyUpgrade(i, 1);
+                        scheduleUpdate();
+                    });
+
+                    maxBtn.addEventListener('click', () => {
+                        if (!eventActive) return;
+                        buyMaxForIndex(i);
+                        scheduleUpdate();
+                    });
+                }
+            }
+
+            // ──────────────────────────────────────
+            // ОБРАБОТЧИК КЛИКОВ
+            // ──────────────────────────────────────
+            clickButton.addEventListener('click', () => {
+                if (!eventActive) return;
+                score += clickPower;
+                scheduleUpdate();
+            });
+
+            clickButton.addEventListener('touchstart', (e) => {
+                if (!eventActive) return;
+                e.preventDefault();
+                score += clickPower;
+                scheduleUpdate();
+            });
+
+            // ──────────────────────────────────────
+            // ЗАПУСК
+            // ──────────────────────────────────────
+            buildUpgrades();
+            forceUpdate();
+            startTimer();
+        })();
+    </script>
+</body>
+</html>

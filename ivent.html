@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ИВЕНТ КЛИКЕР</title>
+    <style>
+        body { margin: 0; background: #fff; color: #000; font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { width: 100%; max-width: 320px; text-align: center; padding: 20px; }
+        
+        /* Стилизация интерфейса */
+        #auth-section { margin-bottom: 20px; }
+        #game-section { display: none; } /* Скрыто до ввода ника */
+        
+        input { width: 100%; border: none; border-bottom: 2px solid #000; padding: 10px 0; font-size: 18px; text-align: center; outline: none; margin-bottom: 20px; }
+        #score { font-size: 80px; font-weight: 200; margin: 20px 0; letter-spacing: -3px; }
+        #clickBtn { width: 80px; height: 80px; background: #000; border-radius: 50%; border: none; cursor: pointer; transition: 0.1s; }
+        #clickBtn:active { transform: scale(0.9); }
+        
+        .btn-black { background: #000; color: #fff; border: none; padding: 12px 24px; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; margin-top: 20px; width: 100%; }
+        .user-info { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 10px; }
+
+        .leaderboard { margin-top: 50px; border-top: 1px solid #eee; padding-top: 20px; text-align: left; }
+        .leader-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; }
+    #totalGlobal {
+    display: block;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    margin-bottom: 30px;
+    text-transform: uppercase;
+}
+    
+    </style>
+</head>
+<body>
+
+<div class="container">
+<div id="totalGlobal">0 / 1 000 000 000</div>
+
+    <!-- Секция регистрации -->
+    <div id="auth-section">
+        <input type="text" id="nickInput" placeholder="Введите ваш никнейм" maxlength="12">
+        <button class="btn-black" onclick="register()">Начать игру</button>
+    </div>
+
+    <!-- Секция игры -->
+    <div id="game-section">
+        <div class="user-info" id="userDisplay"></div>
+        <div id="score">0</div>
+        <button id="clickBtn"></button>
+        <button class="btn-black" id="saveBtn" onclick="saveResult()">Сохранить прогресс</button>
+    </div>
+
+    <div class="leaderboard">
+        <div id="leaderList">Загрузка топа...</div>
+    </div>
+</div>
+
+<script>
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyVgGgPM-rNOTUKXTORVycHXzLkzYakkWxPwxAipH_X6H3LiVBatgBS6_W8VzBlMzId/exec';
+    let count = 0;
+
+    // 1. Проверяем, есть ли ник в памяти браузера
+    window.onload = () => {
+        const savedNick = localStorage.getItem('playerNick');
+        if (savedNick) {
+            showGame(savedNick);
+        }
+        loadLeaderboard();
+    };
+
+    // 2. Регистрация ника
+    function register() {
+        const nick = document.getElementById('nickInput').value.trim();
+        if (nick.length < 2) return alert('Имя слишком короткое');
+        localStorage.setItem('playerNick', nick);
+        showGame(nick);
+    }
+
+    // 3. Показ игрового интерфейса
+    function showGame(nick) {
+        document.getElementById('auth-section').style.display = 'none';
+        document.getElementById('game-section').style.display = 'block';
+        document.getElementById('userDisplay').innerText = `Игрок: ${nick}`;
+    }
+
+    // 4. Логика клика
+    document.getElementById('clickBtn').onclick = () => {
+        count++;
+        document.getElementById('score').innerText = count;
+    };
+
+    // 5. Сохранение (отправка на сервер)
+    async function saveResult() {
+        const nick = localStorage.getItem('playerNick');
+        const btn = document.getElementById('saveBtn');
+        
+        btn.disabled = true;
+        btn.innerText = 'Сохранение...';
+
+        try {
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify({ name: nick, score: count })
+            });
+            count = 0;
+            document.getElementById('score').innerText = 0;
+            loadLeaderboard();
+        } catch (e) {
+            alert('Error');
+        } finally {
+            btn.disabled = false;
+            btn.innerText = 'Сохранить прогресс';
+        }
+    }
+
+async function loadLeaderboard() {
+    try {
+        const res = await fetch(SCRIPT_URL);
+        const data = await res.json();
+        
+        // Находим твой див и записываем туда текст
+        // Используем 'ru-RU' для красивых пробелов в числах
+        const total = data.total || 0;
+        const goal = 1000000000;
+        
+        const goalElement = document.getElementById('totalGlobal'); 
+        if (goalElement) {
+            goalElement.innerText = `${total.toLocaleString('ru-RU')} / ${goal.toLocaleString('ru-RU')}`;
+        }
+
+        // Обновляем список лидеров
+        document.getElementById('leaderList').innerHTML = data.top.map((u, i) => `
+            <div class="leader-row">
+                <span>${i+1}. ${u.name.toUpperCase()}</span>
+                <b>${u.score.toLocaleString('ru-RU')}</b>
+            </div>
+        `).join('');
+    } catch (e) {
+        console.error("Ошибка загрузки данных");
+    }
+}
+</script>
+
+</body>
+</html>

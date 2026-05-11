@@ -132,10 +132,13 @@ background: rgba(255, 255, 255, 0.01);
 border-radius: 20px;
 border: 1px solid rgba(255, 255, 255, 0.2);
 box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-padding: 40px;
+padding: 50px;
+
 color: white;
 min-height: auto;
 width:fit-content;
+max-width: auto;
+
 
 margin: 0 auto;
 margin-top: 5vh;
@@ -537,6 +540,10 @@ body {
 z-index: 9999;
 
 
+
+
+
+
 }
 
 
@@ -544,6 +551,24 @@ z-index: 9999;
     /* Отключаем кастомные курсоры на мобилках (их там нет) */
     * {
         cursor: auto !important;
+    }
+
+
+        .nemax {
+        width: 90% !important;        /* Вместо фиксированных 60vh */
+        max-width: 400px;             /* Ограничение на больших мобилках */
+        padding: 15px;
+        flex-direction: column;       /* Всё в колонку */
+        gap: 10px;
+        box-sizing: border-box;
+    }
+
+    .nemax img {
+        width: 100% !important;       /* Картинка на всю ширину */
+        height: auto !important;      /* Пропорциональная высота */
+        max-height: 30vh;             /* Чтобы не было слишком высоко */
+        object-fit: cover;
+        border-radius: 15px;
     }
 }
 
@@ -597,4 +622,44 @@ color: white;
 .ad {
     
     animation: pulse-border 0.6s infinite ease-in-out;
+}
+
+
+
+
+
+.nemax{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    
+    gap: 15px;
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.01);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    padding: 20px;
+    color: white;
+    min-height: auto;
+    width:60vh;
+
+    flex-wrap: wrap;
+
+    margin: 0 auto;
+    
+    
+
+
+
+}
+
+.nemax img{
+
+border-radius: 20px;
+width: 40vh;
+height: 20vh;
+
+
 }
