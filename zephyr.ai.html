@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zephyr.AI</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js">
+    </script>
+    <style>
+        /* СТИЛИ (CSS) */
+        :root {
+            --bg-color: #f5f5f7;
+            /* Светло-серый фон как в macOS */
+            --chat-bg: #ffffff;
+            /* Белый закругленный контейнер */
+            --text-dark: #1d1d1f;
+            --text-light: #ffffff;
+            --black-accent: #000000;
+            /* Черные вставки */
+            --grey-border: #d2d2d7;
+            --user-msg-bg: #e8e8ed;
+            --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            padding: 20px;
+        }
+
+        /* Главный контейнер — теперь только для чата */
+        .chat-wrapper {
+            width: 100%;
+            max-width: 1000px;
+            height: 85vh;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            /* РАЗДЕЛЕНИЕ МЕЖДУ ЧАТОМ И ВВОДОМ */;
+        }
+
+        /* Закругленный контейнер для сообщений */
+        .chat-container {
+            flex: 1;
+            background: var(--chat-bg);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            border: 1px solid var(--grey-border);
+            min-height: 0;
+        }
+
+        /* Черный заголовок с закруглениями */
+        .chat-header {
+            background: var(--black-accent);
+            color: var(--text-light);
+            padding: 20px;
+            font-weight: 700;
+            text-align: center;
+            font-size: 1.1em;
+            letter-spacing: -0.5px;
+            border-radius: 20px;
+        }
+
+        /* Окно сообщений */
+        #chat-window {
+            flex: 1;
+            padding: 25px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: var(--chat-bg);
+            scroll-behavior: smooth;
+        }
+
+        /* Стили сообщений (закругленные "пузыри") */
+        .msg {
+            padding: 14px 18px;
+            font-size: 15px;
+            line-height: 1.5;
+            max-width: 80%;
+            word-wrap: break-word;
+            animation: bubblePop 0.3s ease;
+        }
+
+        @keyframes bubblePop {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .user-msg {
+            align-self: flex-end;
+            background: var(--black-accent);
+            /* Черный "пузырь" для пользователя */
+            color: var(--text-light);
+            border-radius: 20px 20px 4px 20px;
+            /* Асимметричное закругление */
+        }
+
+        .ai-msg {
+            align-self: flex-start;
+            background: var(--user-msg-bg);
+            /* Бело-серый "пузырь" для ИИ */
+            color: var(--text-dark);
+            border-radius: 20px 20px 20px 4px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+        }
+
+        /* Оформление Markdown внутри ИИ ответов */
+        .ai-msg p {
+            margin-bottom: 8px;
+        }
+        .ai-msg pre {
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 15px;
+            border-radius: 12px;
+            margin: 10px 0;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+        .ai-msg code {
+            font-family: monospace;
+        }
+        .ai-msg ul,
+        .ai-msg ol {
+            margin-left: 18px;
+            margin-bottom: 8px;
+        }
+
+        /* ОТДЕЛЬНЫЙ КОНТЕЙНЕР ДЛЯ ВВОДА */
+        .input-container {
+            flex-shrink: 0;
+            background: var(--black-accent);
+            /* Черная вставка */
+            border-radius: 20px;
+            padding: 30px 20px 30px 20px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            
+        }
+
+        input {
+            flex: 1;
+            background: #ffffff;
+            /* Белое поле ввода */
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 14px 20px;
+            border-radius: 20px;
+            /* Сильное закругление ввода */
+            outline: none;
+            font-size: 15px;
+            color: #000000;
+            transition: border 0.3s;
+        }
+
+        input:focus {
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        input::placeholder {
+            color: rgba(0, 0, 0, 0.61);
+        }
+
+        /* Белая контрастная кнопка */
+        button {
+            background: var(--chat-bg);
+            color: var(--black-accent);
+            border: none;
+            padding: 0 20px;
+            margin-left: 10px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            height: 46px;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #d2d2d7;
+        }
+        button:active {
+            background: #000000;
+            color: #ffffff;
+        }
+
+        .loading {
+            font-style: italic;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ОБЩАЯ ОБЕРТКА ДЛЯ ЧАТА И ВВОДА, НО ОНИ В РАЗНЫХ ДИВАХ -->
+    <div class="chat-wrapper">
+
+        <!-- ЧАТ КОНТЕЙНЕР (СООБЩЕНИЯ + ЗАГОЛОВОК) -->
+        <div class="chat-container">
+            <div class="chat-header">Zephyr.AI</div>
+            <div id="chat-window">
+                <div class="msg ai-msg">Привет! Чем я могу помочь тебе сегодня?</div>
+            </div>
+        </div>
+
+        <!-- ОТДЕЛЬНЫЙ КОНТЕЙНЕР ДЛЯ ВВОДА -->
+        <div class="input-container">
+            <input type="text" id="user-input" placeholder="Введите ваш запрос..." autocomplete="off">
+            <button onclick="sendMessage()">Отправить</button>
+        </div>
+
+    </div>
+
+    <script>
+        const API_KEY = "AIzaSyDHXcDAk8zdjkOM_IBUpFKYsUgyxIWMNDg";
+        const URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+
+        async function sendMessage() {
+            const input = document.getElementById('user-input');
+            const chatWindow = document.getElementById('chat-window');
+            const text = input.value.trim();
+
+            if (!text) return;
+
+            // Добавляем сообщение пользователя (Черное)
+            chatWindow.innerHTML += `<div class="msg user-msg">${text}</div>`;
+            input.value = "";
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+
+            // Создаем временный пузырь для ИИ
+            const aiMsgDiv = document.createElement('div');
+            aiMsgDiv.className = 'msg ai-msg loading';
+            aiMsgDiv.innerText = "Формирую ответ...";
+            chatWindow.appendChild(aiMsgDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+
+            try {
+                const response = await fetch(`${URL}?key=${API_KEY}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: text
+                            }]
+                        }]
+                    })
+                });
+
+                const data = await response.json();
+                if (data.error) throw new Error(data.error.message);
+
+                const rawAiText = data.candidates[0].content.parts[0].text;
+
+                // Рендерим Markdown
+                aiMsgDiv.classList.remove('loading');
+                aiMsgDiv.innerHTML = marked.parse(rawAiText);
+
+            } catch (error) {
+                aiMsgDiv.classList.remove('loading');
+                aiMsgDiv.style.color = "#ff3b30"; // Премиальный красный
+                aiMsgDiv.innerText = "Произошла ошибка соединения.";
+            }
+
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        // Отправка по нажатию Enter
+        document.getElementById('user-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+</html>
