@@ -236,70 +236,62 @@
         const API_KEY = "AIzaSyDHXcDAk8zdjkOM_IBUpFKYsUgyxIWMNDg";
         const URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
         
+        async function sendMessage() {
+            const input = document.getElementById('user-input');
+            const chatWindow = document.getElementById('chat-window');
+            const text = input.value.trim();
 
+            if (!text) return;
 
-// 1. Создаем "память" чата
-let chatHistory = [];
+            // Добавляем сообщение пользователя (Черное)
+            chatWindow.innerHTML += `<div class="msg user-msg">${text}</div>`;
+            input.value = "";
+            chatWindow.scrollTop = chatWindow.scrollHeight;
 
-async function sendMessage() {
-    const input = document.getElementById('user-input');
-    const chatWindow = document.getElementById('chat-window');
-    const text = input.value.trim();
-    
-    if (!text) return;
+            // Создаем временный пузырь для ИИ
+            const aiMsgDiv = document.createElement('div');
+            aiMsgDiv.className = 'msg ai-msg loading';
+            aiMsgDiv.innerText = "Формирую ответ...";
+            chatWindow.appendChild(aiMsgDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
 
-    // Добавляем сообщение в визуальное окно
-    chatWindow.innerHTML += `<div class="msg user-msg">${text}</div>`;
-    
-    // 2. Добавляем вопрос пользователя в память (в формате, который понимает Gemini)
-    chatHistory.push({
-        role: "user",
-        parts: [{ text: text }]
-    });
+            try {
+                const response = await fetch(`${URL}?key=${API_KEY}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: text
+                            }]
+                        }]
+                    })
+                });
 
-    input.value = "";
-    chatWindow.scrollTop = chatWindow.scrollHeight;
+                const data = await response.json();
+                if (data.error) throw new Error(data.error.message);
 
-    const aiMsgDiv = document.createElement('div');
-    aiMsgDiv.className = 'msg ai-msg loading';
-    aiMsgDiv.innerText = "Думаю...";
-    chatWindow.appendChild(aiMsgDiv);
-    chatWindow.scrollTop = chatWindow.scrollHeight;
+                const rawAiText = data.candidates[0].content.parts[0].text;
 
-    try {
-        const response = await fetch(`${URL}?key=${API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                contents: chatHistory // 3. Отправляем ВСЮ историю вместо одного сообщения
-            })
+                // Рендерим Markdown
+                aiMsgDiv.classList.remove('loading');
+                aiMsgDiv.innerHTML = marked.parse(rawAiText);
+
+            } catch (error) {
+                aiMsgDiv.classList.remove('loading');
+                aiMsgDiv.style.color = "#ff3b30"; // Премиальный красный
+                aiMsgDiv.innerText = "Произошла ошибка соединения.";
+            }
+
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        // Отправка по нажатию Enter
+        document.getElementById('user-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
         });
-
-        const data = await response.json();
-        const rawAiText = data.candidates[0].content.parts[0].text;
-
-        // 4. Добавляем ответ ИИ в память, чтобы он помнил его в следующий раз
-        chatHistory.push({
-            role: "model",
-            parts: [{ text: rawAiText }]
-        });
-
-        aiMsgDiv.classList.remove('loading');
-        aiMsgDiv.innerHTML = marked.parse(rawAiText);
-
-    } catch (error) {
-        aiMsgDiv.classList.remove('loading');
-        aiMsgDiv.innerText = "Ошибка памяти или связи.";
-        console.error(error);
-    }
-    
-    chatWindow.scrollTop = chatWindow.scrollHeight;
-}
-
-// Позволяет нажимать Enter
-document.getElementById('user-input').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') sendMessage();
-});
     </script>
 </body>
 </html>
