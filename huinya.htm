@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rocket Crash - Adaptive Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --accent: #8b5cf6;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617;
+            color: #f8fafc;
+            overflow: hidden;
+            margin: 0;
+            user-select: none;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1, .multiplier-text {
+            font-family: 'Exo 2', sans-serif;
+        }
+
+        .glass-card {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Кастомный скроллбар для истории */
+        #history-list::-webkit-scrollbar { 
+            width: 4px; 
+            height: 4px; 
+        }
+        #history-list::-webkit-scrollbar-track { 
+            background: transparent; 
+        }
+        #history-list::-webkit-scrollbar-thumb { 
+            background: rgba(59, 130, 246, 0.5); 
+            border-radius: 10px; 
+        }
+
+        /* Адаптивный шрифт множителя */
+        .multiplier-text {
+            font-size: clamp(3rem, 15vw, 8rem);
+            line-height: 1;
+            text-shadow: 0 0 40px rgba(59, 130, 246, 0.6);
+        }
+
+        /* Фикс для истории - ограничиваем максимальную высоту */
+        .history-container {
+            max-height: calc(100vh - 200px);
+            overflow: hidden;
+        }
+
+        .history-scroll {
+            overflow-y: auto;
+            overflow-x: hidden;
+            max-height: 100%;
+        }
+    </style>
+</head>
+<body class="p-2 sm:p-4 md:p-6">
+
+    <div class="w-full h-full max-w-7xl mx-auto flex flex-col lg:grid lg:grid-cols-12 gap-3 md:gap-6">
+        
+        <!-- Верхняя панель / Левая панель (История и Баланс) -->
+        <div class="lg:col-span-3 flex flex-col gap-3 lg:h-full order-2 lg:order-1 overflow-hidden">
+            <!-- История (Горизонтальная на мобилках, вертикальная на ПК) -->
+            <div class="glass-card p-3 md:p-5 rounded-2xl md:rounded-3xl flex flex-col overflow-hidden flex-1 min-h-0">
+                <div class="hidden lg:flex items-center justify-between mb-4 flex-shrink-0">
+                    <h2 class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">История полетов</h2>
+                    <div class="h-2 w-2 rounded-full bg-blue-500 animate-pulse"></div>
+                </div>
+                <!-- Обертка с прокруткой -->
+                <div class="flex-1 min-h-0 overflow-hidden">
+                    <div id="history-list" class="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto pb-2 lg:pb-0 h-full lg:max-h-full">
+                        <!-- Сюда JS будет добавлять результаты -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Баланс -->
+            <div class="glass-card p-4 md:p-6 rounded-2xl md:rounded-3xl border-l-4 lg:border-l-0 lg:border-t-4 border-blue-500 flex-shrink-0">
+                <p class="text-[10px] font-bold text-slate-500 uppercase mb-1">Кошелек</p>
+                <div id="balance-display" class="text-xl md:text-3xl font-black text-white tabular-nums">$1,000.00</div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-9 flex flex-col gap-3 md:gap-6 flex-[2] lg:flex-1 order-1 lg:order-2 overflow-hidden">
+            <div class="relative glass-card rounded-2xl md:rounded-[2.5rem] overflow-hidden flex-1 border border-slate-800/50">
+                <canvas id="game-canvas" class="absolute inset-0 w-full h-full"></canvas>
+                
+                <!-- Центрированный множитель -->
+                <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <div id="multiplier-display" class="multiplier-text font-black transition-all">1.00x</div>
+                    <div id="status-pill" class="mt-2 md:mt-4 px-4 py-1.5 rounded-full bg-slate-900/80 backdrop-blur-md border border-slate-700 text-[10px] md:text-xs font-bold opacity-0 transition-all duration-500 transform translate-y-4">
+                        ПОДГОТОВКА К ЗАПУСКУ
+                    </div>
+                </div>
+
+                <!-- Оверлей ожидания раунда -->
+                <div id="next-round-overlay" class="absolute inset-0 bg-[#020617]/90 backdrop-blur-md hidden flex-col items-center justify-center z-30">
+                    <div class="text-blue-400 text-[10px] font-black uppercase tracking-[0.3em] mb-4">Старт новой миссии через</div>
+                    <div id="timer-display" class="text-6xl md:text-8xl font-black text-white tabular-nums">3.0</div>
+                    <div class="mt-8 w-32 md:w-64 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div id="timer-progress" class="h-full bg-blue-500" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card p-4 md:p-6 rounded-2xl md:rounded-[2.5rem] grid grid-cols-1 md:grid-cols-12 gap-4 items-center flex-shrink-0">
+                <div class="md:col-span-7 flex flex-col gap-2">
+                    <div class="flex justify-between items-center px-1">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Ставка ($)</label>
+                        <div class="flex gap-1.5">
+                            <button onclick="adjustBet(0.5)" class="bg-slate-800 hover:bg-slate-700 text-[10px] font-bold py-1 px-3 rounded-lg border border-slate-700 transition-colors">/2</button>
+                            <button onclick="adjustBet(2)" class="bg-slate-800 hover:bg-slate-700 text-[10px] font-bold py-1 px-3 rounded-lg border border-slate-700 transition-colors">X2</button>
+                            <button onclick="adjustBet(100, true)" class="bg-slate-800 hover:bg-slate-700 text-[10px] font-bold py-1 px-3 rounded-lg border border-slate-700 transition-colors">MAX</button>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <input type="number" id="bet-input" value="10" 
+                               class="w-full bg-slate-900/80 border-2 border-slate-700 rounded-xl md:rounded-2xl py-4 px-5 focus:outline-none focus:border-blue-500 transition-all font-black text-xl text-white">
+                    </div>
+                </div>
+
+                <div class="md:col-span-5 h-full">
+                    <button id="action-btn" class="w-full h-full min-h-[64px] bg-blue-600 hover:bg-blue-500 active:scale-[0.97] text-white font-black rounded-xl md:rounded-2xl shadow-lg shadow-blue-900/30 transition-all uppercase tracking-widest text-lg md:text-xl">
+                        Взлет
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const multiplierDisplay = document.getElementById('multiplier-display');
+        const statusPill = document.getElementById('status-pill');
+        const actionBtn = document.getElementById('action-btn');
+        const betInput = document.getElementById('bet-input');
+        const balanceDisplay = document.getElementById('balance-display');
+        const historyList = document.getElementById('history-list');
+        const nextRoundOverlay = document.getElementById('next-round-overlay');
+        const timerDisplay = document.getElementById('timer-display');
+        const timerProgress = document.getElementById('timer-progress');
+
+        let balance = 1000;
+        let currentBet = 0;
+        let gameState = 'IDLE'; 
+        let multiplier = 1.00;
+        let crashPoint = 0;
+        let startTime = 0;
+        let stars = [];
+        let particles = [];
+        let gridOffset = 0;
+
+        function initCanvas() {
+            const container = canvas.parentElement;
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = container.offsetWidth * dpr;
+            canvas.height = container.offsetHeight * dpr;
+            ctx.scale(dpr, dpr);
+            createStars();
+        }
+
+        function createStars() {
+            stars = [];
+            const count = window.innerWidth < 768 ? 80 : 200;
+            for (let i = 0; i < count; i++) {
+                stars.push({
+                    x: Math.random() * (canvas.width / (window.devicePixelRatio || 1)),
+                    y: Math.random() * (canvas.height / (window.devicePixelRatio || 1)),
+                    z: Math.random() * 2,
+                    speed: Math.random() * 0.5 + 0.1
+                });
+            }
+        }
+
+        function adjustBet(val, isAbsolute = false) {
+            if (isAbsolute) {
+                betInput.value = Math.floor(balance);
+                return;
+            }
+            let currentVal = parseFloat(betInput.value) || 0;
+            betInput.value = Math.max(1, Math.floor(currentVal * val));
+        }
+
+        function updateBalance(amount) {
+            balance += amount;
+            balanceDisplay.textContent = `$${balance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        }
+
+        function addToHistory(value) {
+            const item = document.createElement('div');
+            const isLucky = value >= 2;
+            const isGodlike = value >= 10;
+            
+            item.className = `history-item flex-shrink-0 flex items-center gap-3 px-4 py-2 rounded-xl border transition-all hover:scale-105 ${
+                isGodlike ? 'bg-yellow-500/10 border-yellow-500/40 text-yellow-400' : 
+                isLucky ? 'bg-blue-500/10 border-blue-500/40 text-blue-400' : 
+                'bg-slate-800/80 border-slate-700 text-slate-400'
+            }`;
+            
+            item.innerHTML = `
+                <span class="text-[8px] font-bold opacity-50 uppercase">x</span>
+                <span class="font-black text-sm">${parseFloat(value).toFixed(2)}</span>
+            `;
+            
+            historyList.prepend(item);
+            
+            // Ограничиваем количество элементов в истории
+            if (historyList.children.length > 50) {
+                historyList.lastElementChild.remove();
+            }
+            
+            // Автопрокрутка к началу списка на десктопе
+            if (window.innerWidth >= 1024) {
+                historyList.scrollTop = 0;
+            }
+        }
+
+        function drawGrid(speed) {
+            const w = canvas.width / (window.devicePixelRatio || 1);
+            const h = canvas.height / (window.devicePixelRatio || 1);
+            
+            ctx.strokeStyle = `rgba(59, 130, 246, ${0.04 + (speed * 0.015)})`;
+            ctx.lineWidth = 1;
+
+            gridOffset = (gridOffset + speed * 3) % 60;
+
+            // Вертикальные линии
+            for (let x = -gridOffset; x < w; x += 60) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+            }
+            // Горизонтальные линии
+            for (let y = -gridOffset * 0.5; y < h; y += 60) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+            }
+        }
+
+        function drawRocket(progress) {
+            const w = canvas.width / (window.devicePixelRatio || 1);
+            const h = canvas.height / (window.devicePixelRatio || 1);
+            
+            const x = w * 0.15 + (w * 0.65) * Math.min(progress, 1);
+            const y = h * 0.85 - (h * 0.65) * Math.min(progress, 1);
+
+            const shake = multiplier > 2.5 ? (Math.random() - 0.5) * (multiplier * 0.4) : 0;
+            const sizeScale = window.innerWidth < 768 ? 0.7 : 1;
+
+            ctx.save();
+            ctx.translate(x + shake, y + shake);
+            ctx.scale(sizeScale, sizeScale);
+            ctx.rotate(-Math.PI / 4);
+
+            // Двигатель и пламя
+            if (gameState === 'FLYING' || gameState === 'CASHED_OUT') {
+                const flameLen = 40 + Math.random() * 30 + (multiplier * 3);
+                const g = ctx.createLinearGradient(0, 0, -flameLen, 0);
+                g.addColorStop(0, '#3b82f6');
+                g.addColorStop(0.4, '#8b5cf6');
+                g.addColorStop(1, 'transparent');
+                ctx.fillStyle = g;
+                ctx.beginPath(); ctx.moveTo(-15, -10); ctx.lineTo(-flameLen, 0); ctx.lineTo(-15, 10); ctx.fill();
+            }
+
+            // Корпус
+            ctx.shadowBlur = 25; ctx.shadowColor = '#3b82f6';
+            ctx.fillStyle = '#f8fafc';
+            ctx.beginPath(); ctx.ellipse(0, 0, 45, 16, 0, 0, Math.PI * 2); ctx.fill();
+
+            // Нос
+            ctx.fillStyle = '#3b82f6';
+            ctx.beginPath(); ctx.moveTo(45, 0); ctx.lineTo(15, -16); ctx.lineTo(15, 16); ctx.fill();
+
+            // Крылья
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(-20, -22, 15, 44);
+
+            // Иллюминатор
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath(); ctx.arc(12, 0, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 3; ctx.stroke();
+
+            ctx.restore();
+
+            // Частицы шлейфа
+            if (gameState === 'FLYING' && Math.random() > 0.15) {
+                particles.push({
+                    x: x - 20, y: y + 20,
+                    vx: -3 - Math.random() * 2, vy: 2 + Math.random() * 2,
+                    size: 6 + Math.random() * 12, life: 1,
+                    color: `rgba(139, 92, 246, ${0.3 + Math.random() * 0.3})`
+                });
+            }
+        }
+
+        function gameLoop(timestamp) {
+            const w = canvas.width / (window.devicePixelRatio || 1);
+            const h = canvas.height / (window.devicePixelRatio || 1);
+            ctx.clearRect(0, 0, w, h);
+
+            drawGrid(gameState === 'FLYING' ? Math.sqrt(multiplier) : 0.6);
+
+            stars.forEach(s => {
+                ctx.fillStyle = `rgba(255, 255, 255, ${0.4 + s.z * 0.3})`;
+                ctx.beginPath(); ctx.arc(s.x, s.y, s.z, 0, Math.PI * 2); ctx.fill();
+                let speedFactor = (gameState === 'FLYING' || gameState === 'CASHED_OUT') ? multiplier * 2.5 : 0.6;
+                s.x -= s.speed * speedFactor;
+                s.y += s.speed * (speedFactor * 0.3);
+                if (s.x < 0) s.x = w; if (s.y > h) s.y = 0;
+            });
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx; p.y += p.vy; p.life -= 0.025;
+                if (p.life <= 0) { particles.splice(i, 1); continue; }
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+
+            if (gameState === 'FLYING') {
+                const elapsed = (timestamp - startTime) / 1000;
+                multiplier = Math.pow(1.08, elapsed * 1.7);
+                multiplierDisplay.textContent = multiplier.toFixed(2) + 'x';
+                if (multiplier >= crashPoint) triggerCrash();
+                drawRocket(Math.log2(multiplier) / 5);
+            } 
+            else if (gameState === 'CASHED_OUT') {
+                const elapsed = (timestamp - startTime) / 1000;
+                multiplier = Math.pow(1.08, elapsed * 1.7);
+                multiplierDisplay.textContent = multiplier.toFixed(2) + 'x';
+                if (multiplier >= crashPoint) { gameState = 'CRASHED'; addToHistory(crashPoint); visualizeCrash(); }
+                drawRocket(Math.log2(multiplier) / 5 + 0.25);
+            }
+            else { drawRocket(0); }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function triggerCrash() {
+            gameState = 'CRASHED';
+            addToHistory(crashPoint);
+            visualizeCrash();
+        }
+
+        function visualizeCrash() {
+            multiplierDisplay.classList.add('text-red-500', 'scale-110');
+            multiplierDisplay.textContent = 'BOOM!';
+            statusPill.textContent = `КРАШ НА ${crashPoint.toFixed(2)}x`;
+            statusPill.className = "mt-4 px-4 py-1.5 rounded-full bg-red-500/20 text-red-500 border border-red-500/40 text-xs font-bold opacity-100 transform translate-y-0";
+            
+            actionBtn.disabled = true;
+            actionBtn.className = "w-full h-full min-h-[64px] bg-slate-800 text-slate-500 font-black rounded-2xl cursor-not-allowed uppercase tracking-widest text-sm";
+            
+            for(let i=0; i<60; i++) {
+                particles.push({
+                    x: (canvas.width/window.devicePixelRatio) * 0.65,
+                    y: (canvas.height/window.devicePixelRatio) * 0.35,
+                    vx: (Math.random() - 0.5) * 18, vy: (Math.random() - 0.5) * 18,
+                    size: 5 + Math.random() * 10, life: 1,
+                    color: i % 2 === 0 ? '#ef4444' : '#f59e0b'
+                });
+            }
+            setTimeout(startCountdown, 1500);
+        }
+
+        function startCountdown() {
+            let timeLeft = 3.0;
+            nextRoundOverlay.classList.remove('hidden');
+            nextRoundOverlay.classList.add('flex');
+            const interval = setInterval(() => {
+                timeLeft -= 0.1;
+                timerDisplay.textContent = Math.max(0, timeLeft).toFixed(1);
+                timerProgress.style.width = (timeLeft / 3 * 100) + '%';
+                if (timeLeft <= 0) { clearInterval(interval); resetGame(); }
+            }, 100);
+        }
+
+        function resetGame() {
+            gameState = 'IDLE';
+            multiplier = 1.00;
+            multiplierDisplay.textContent = '1.00x';
+            multiplierDisplay.classList.remove('text-red-500', 'scale-110');
+            statusPill.className = "mt-4 px-4 py-1.5 rounded-full bg-slate-900/80 border border-slate-700 text-xs font-bold opacity-0 transition-all transform translate-y-4";
+            nextRoundOverlay.classList.remove('flex');
+            nextRoundOverlay.classList.add('hidden');
+            actionBtn.disabled = false;
+            actionBtn.textContent = 'Взлет';
+            actionBtn.className = "w-full h-full min-h-[64px] bg-blue-600 hover:bg-blue-500 text-white font-black rounded-2xl shadow-lg transition-all uppercase tracking-widest text-xl";
+        }
+
+        actionBtn.addEventListener('click', () => {
+            if (gameState === 'IDLE') {
+                const bet = parseFloat(betInput.value);
+                if (isNaN(bet) || bet < 1 || bet > balance) return;
+                currentBet = bet;
+                updateBalance(-currentBet);
+                gameState = 'FLYING';
+                startTime = performance.now();
+                crashPoint = Math.random() < 0.05 ? 1.00 : Math.max(1.01, (0.98 / (1 - Math.random())).toFixed(2));
+                actionBtn.textContent = 'Забрать';
+                actionBtn.className = "w-full h-full min-h-[64px] bg-orange-500 hover:bg-orange-400 text-white font-black rounded-2xl shadow-lg shadow-orange-900/40 animate-pulse uppercase tracking-widest text-xl";
+                statusPill.textContent = "ПОЛЕТ НОРМАЛЬНЫЙ";
+                statusPill.className = "mt-4 px-4 py-1.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/40 text-xs font-bold opacity-100 transform translate-y-0";
+            } 
+            else if (gameState === 'FLYING') {
+                const win = currentBet * multiplier;
+                updateBalance(win);
+                gameState = 'CASHED_OUT';
+                statusPill.textContent = `ВЫИГРЫШ $${win.toFixed(2)}`;
+                statusPill.className = "mt-4 px-4 py-1.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/40 text-xs font-bold opacity-100 transform translate-y-0";
+                actionBtn.disabled = true;
+                actionBtn.textContent = 'Ждем краш...';
+                actionBtn.className = "w-full h-full min-h-[64px] bg-slate-800 text-slate-500 font-black rounded-2xl cursor-not-allowed uppercase tracking-widest text-sm";
+            }
+        });
+
+        window.onload = () => { 
+            initCanvas(); 
+            requestAnimationFrame(gameLoop); 
+            updateBalance(0); 
+        };
+        window.onresize = initCanvas;
+    </script>
+</body>
+</html>
